@@ -1,0 +1,23 @@
+name: Deploy Jarvis Stack to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /home/jarvis/app
+            git pull origin main
+            mkdir -p /home/jarvis/app/infra/n8n_data
+            sudo chown -R 1000:1000 /home/jarvis/app/infra/n8n_data
+            sudo docker compose --env-file /home/jarvis/app/.env -f /home/jarvis/app/infra/docker-compose.yml up -d --remove-orphans

@@ -1,0 +1,13 @@
+# Secrets & Environnement
+.env
+infra/.env
+
+# Données persistantes Docker
+n8n_data/
+infra/n8n_data/
+
+# Système & Dépendances futures
+.DS_Store
+node_modules/
+vendor/
+target/

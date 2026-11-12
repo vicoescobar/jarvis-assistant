@@ -1,0 +1,32 @@
+flowchart TB
+    classDef user fill:#4F46E5,stroke:#312E81,stroke-width:2px,color:#fff
+    classDef google fill:#0F9D58,stroke:#0B8043,stroke-width:2px,color:#fff
+    classDef vps fill:#EA580C,stroke:#9A3412,stroke-width:2px,color:#fff
+    classDef future fill:#64748B,stroke:#334155,stroke-width:2px,stroke-dasharray: 5 5,color:#fff
+
+    subgraph CLIENT ["📱 Points de contact Mobile & Desktop"]
+        VOICE["🎙️ Assistant Vocal Android (Gemini)"]:::user
+        CHAT["💬 Discord / WhatsApp"]:::user
+        CAL["📅 Agenda & Google Tasks"]:::user
+    end
+
+    subgraph CLOUD ["☁️ Écosystème Google & Sources Externes"]
+        GMAIL["📧 Gmail & Outlook École"]:::google
+        GTASKS["✅ Google Tasks (File #jarvis)"]:::google
+        GDRIVE["📂 Google Drive & Sheets"]:::google
+    end
+
+    subgraph VPS ["🖥️ VPS OVH (CloudPanel + Docker + CI/CD)"]
+        N8N["⚙️ Orchestrateur n8n"]:::vps
+        GEMINI["🧠 API Gemini Flash"]:::vps
+        DASH["💻 Dashboard Jarvis (Vue.js + API)<br/>Phase 3"]:::future
+    end
+
+    VOICE -->|"Commandes '#jarvis ...'"| GTASKS
+    GTASKS <-->|"Polling & Tâches extraites"| N8N
+    GMAIL -->|"Agrégation & Filtrage"| N8N
+    CAL <-->|"Synchronisation"| N8N
+    GDRIVE <-->|"Logs & Second Cerveau"| N8N
+    N8N <-->|"Extraction JSON & Synthèse"| GEMINI
+    N8N <-->|"Notifications & Webhooks"| CHAT
+    DASH <-->|"REST / Webhooks"| N8N

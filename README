@@ -1,0 +1,22 @@
+# Jarvis Assistant — Event-Driven Personal Orchestrator
+
+Assistant personnel auto-hébergé conçu pour réduire la charge mentale cognitive, automatiser le tri d'informations multi-sources (Gmail, Outlook, Discord) et piloter des routines quotidiennes par commandes vocales ou messagerie.
+
+## Architecture & Stack Technique
+
+- **Orchestration & Workflows :** [n8n](https://n8n.io/) (conteneurisé via Docker)
+- **IA & Extraction Structurée :** Google Gemini Flash API (JSON Schema enforcement, synthèse asynchrone)
+- **Intégrations :** Google Workspace API (Gmail, Calendar, Tasks, Drive), Discord / WhatsApp Webhooks
+- **Infrastructure & CI/CD :** VPS Linux (OVH), Reverse Proxy Nginx (CloudPanel + SSL Let's Encrypt), déploiement continu via **GitHub Actions**
+- **Dashboard Web *(en cours — Sprint 3)* :** Vue.js 3 + API REST (Spring Boot / Laravel)
+
+## Structure du dépôt
+
+- `infra/` : Configuration Docker Compose et modèles de variables d'environnement
+- `workflows/` : Exports JSON versionnés des pipelines n8n
+- `docs/` : Diagrammes d'architecture Mermaid et guides de configuration
+- `backend/` & `frontend/` : Cockpit web Jarvis (Sprint 3)
+
+## Déploiement
+
+Tout push sur la branche `main` déclenche le workflow `.github/workflows/deploy.yml` qui synchronise le serveur via SSH et redéploie la stack Docker sans interruption.

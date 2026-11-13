@@ -28,7 +28,7 @@ description: Implement Step 1.2 — Private Discord Notification Channel & Adapt
    `const defaultDelta = op === 'skip_or_shift_cycle' ? 0 : 1;`
    `const delta = typeof payload.step_delta === 'number' ? payload.step_delta : defaultDelta;`
    `nextIndex = ((prevIndex + delta) % steps.length + steps.length) % steps.length;`
-3. In the final response formatting (or a non-blocking post-processing code/HTTP step), if `process.env.DISCORD_BRIEFING_WEBHOOK_URL` is non-empty and the request payload includes `"notify_discord": true` (or by default for voice commands), send a clean confirmation embed/message to Discord in addition to returning the HTTP JSON response.
+3. In the final response formatting (or a non-blocking post-processing code/HTTP step), if `$env.DISCORD_BRIEFING_WEBHOOK_URL` is non-empty and the request payload includes `"notify_discord": true` (or by default for voice commands), send a clean confirmation embed/message to Discord in addition to returning the HTTP JSON response.
 
 ---
 
@@ -57,7 +57,7 @@ description: Implement Step 1.2 — Private Discord Notification Channel & Adapt
      - Line 3 (Negotiable Activity Suggestion): Propose 1 rewarding activity based on `morning_rules` and variety (e.g., 45-min timed Ableton Sandbox ending with 15s MP3 export, DJ mix, or quick coding/admin task) and explicitly remind the user they can reply via voice to accept, change, or skip.
 4. **Code / HTTP Dispatch Node (`Save Briefing State & Send to Discord`):**
    - Saves today's generated briefing summary and suggested activity into `memory_rules.json` under `custom_scopes.today_briefing_state` (with `volatile: true`, `expires_at: today`) so `01-voice-agent-core` knows what was proposed this morning when the user replies!
-   - Sends the formatted message to `process.env.DISCORD_BRIEFING_WEBHOOK_URL` via HTTP POST (if configured; gracefully logs a warning in JSON response if the env var is empty so testing via `curl` never crashes).
+   - Sends the formatted message to `$env.DISCORD_BRIEFING_WEBHOOK_URL` via HTTP POST (if configured; gracefully logs a warning in JSON response if the env var is empty so testing via `curl` never crashes).
 5. **Respond to Webhook Node:**
    - Returns `{ "status": "ok", "discord_sent": boolean, "briefing": "<generated_text>", "timestamp": "<ISO>" }`.
 

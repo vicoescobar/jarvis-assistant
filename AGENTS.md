@@ -16,7 +16,7 @@
   - Passwordless sudoers restricted strictly to `/snap/bin/docker` and `/usr/bin/chown` (`/etc/sudoers.d/jarvis-docker`).
 - **Docker Runtime:** Installed via Ubuntu Snap.
   - Volumes `/home/jarvis/app/infra/n8n_data` and `/home/jarvis/app/infra/user_data` MUST maintain `1000:1000` ownership (internal `node` user in n8n container).
-  - `NODE_FUNCTION_ALLOW_BUILTIN=fs,path,crypto` enabled on `jarvis-n8n` so the 4 Meta-Tools can read/write runtime JSON files in `/home/node/user_data/`.
+  - `NODE_FUNCTION_ALLOW_BUILTIN=fs,path,crypto,https,url` and `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` enabled on `jarvis-n8n` so Meta-Tools and workflows can read/write runtime JSON files in `/home/node/user_data/` and dispatch notifications to `DISCORD_BRIEFING_WEBHOOK_URL`.
 - **Reverse Proxy & SSL:** CloudPanel (Nginx) on domain `https://jarvis.victor-giroud.fr/` (IONOS domain `victor-giroud.fr`) with Let's Encrypt SSL forwarding to `http://127.0.0.1:5678`.
 - **Orchestrator:** `jarvis-n8n` (`docker.n8n.io/n8nio/n8n:latest`) with lifetime Community License unlocked (Folders & Advanced Debugging enabled).
 - **CI/CD Pipeline:** Every push to `main` triggers `.github/workflows/deploy.yml`, which connects via SSH as `jarvis`, pulls `main`, initializes `trackers_registry.json` and `memory_rules.json` in `infra/user_data` if missing, enforces `1000:1000` on `n8n_data` and `user_data`, runs `docker compose up -d --remove-orphans`, and auto-imports versioned workflows via `n8n import:workflow --separate --input=/home/node/workflows/`.
@@ -47,13 +47,14 @@
 - `.agents/skills/dual-loop-workflow/SKILL.md` : Synchronizing specs and implementation reports between NotebookLM and Antigravity IDE
 - `.agents/skills/n8n-workflow-builder/SKILL.md` : n8n JSON & Gemini structured schema rules
 - `.agents/skills/sprint1-dynamic-trackers-engine/SKILL.md` : Schema-less Dynamic Trackers & Context Memory Engine (Step 1.1)
+- `.agents/skills/sprint1-morning-briefing-discord/SKILL.md` : Discord Outbound Channel & Adaptive Morning Briefing (Step 1.2)
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram
 - `infra/docker-compose.yml` : Production containers (bound strictly to `127.0.0.1`, mounting `n8n_data`, `user_data`, and `workflows`)
 - `infra/user_data/` : Private gitignored runtime volume (`trackers_registry.json`, `data_<tracker_id>.json`, `memory_rules.json`)
 - `infra/.env.exemple` : Environment template
-- `workflows/` : Versioned JSON exports of n8n workflows (`01-voice-agent-core.json`, etc.)
+- `workflows/` : Versioned JSON exports of n8n workflows (`01-voice-agent-core.json`, `02-morning-briefing.json`, etc.)
 - `scripts/` : Utility scripts (Discord export, backups)
 - `backend/` : Sprint 3 REST API (Spring Boot or Laravel)
 - `frontend/` : Sprint 3 Jarvis Web Cockpit (Vue.js 3 + Tailwind CSS)
@@ -64,9 +65,8 @@
 - **Sprint 0 (DONE):** Docker n8n infra, CloudPanel SSL reverse proxy (`https://jarvis.victor-giroud.fr/`), isolated `jarvis` Linux user, GitHub Monorepo, and SSH GitHub Actions auto-deploy.
 - **Sprint 1 (IN PROGRESS — Vital MVP & Dynamic Trackers Engine):**
   - **Step 1.1 (DONE):** Private `user_data` volume + Schema-less Dynamic Trackers & Context Memory Engine (`workflows/01-voice-agent-core.json` exposing `POST /webhook/voice-command` with the 4 universal Meta-Tools: `create_or_update_tracker_schema`, `mutate_tracker_record`, `query_tracker_records`, `update_memory_rule`).
-  - Connect Gemini Flash API & Google Workspace OAuth2 in n8n.
-  - Setup private Discord/WhatsApp notification channel.
-  - Morning briefing + "Si X, alors Y" plan (`morning_rules` + active trackers).
+  - **Step 1.2 (DONE):** Private Discord notification channel (`DISCORD_BRIEFING_WEBHOOK_URL`) + Adaptive & Negotiable Morning Briefing (`workflows/02-morning-briefing.json` triggered at 08:30 Europe/Paris & `POST /webhook/morning-briefing`) + zero-guilt cycle shift (`defaultDelta = 0` on `skip_or_shift_cycle`).
+  - Connect Google Workspace OAuth2 in n8n.
   - Daily internship email triage + Google Tasks creation.
   - Poll Google Tasks for `#jarvis` voice commands and execute asynchronously.
   - 3:00 AM Night Amnesty silent task rollover to "Parking" list.

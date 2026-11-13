@@ -1,0 +1,210 @@
+{
+  "id": "02-morning-briefing",
+  "name": "02 - Adaptive Morning Briefing (Discord & Dynamic Trackers)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "b2a00002-0001-4000-8000-000000000001",
+      "name": "Daily 08:30 Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "morning-briefing",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b2a00002-0002-4000-8000-000000000002",
+      "name": "Webhook Morning Briefing",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        440
+      ],
+      "webhookId": "jarvis-morning-briefing-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst userDataDir = '/home/node/user_data';\nconst registryPath = path.join(userDataDir, 'trackers_registry.json');\nconst memoryPath = path.join(userDataDir, 'memory_rules.json');\n\nif (!fs.existsSync(userDataDir)) {\n  fs.mkdirSync(userDataDir, { recursive: true });\n}\n\nif (!fs.existsSync(registryPath)) {\n  fs.writeFileSync(registryPath, JSON.stringify({ trackers: {} }, null, 2), 'utf8');\n}\n\nif (!fs.existsSync(memoryPath)) {\n  fs.writeFileSync(memoryPath, JSON.stringify({ morning_rules: [], custom_scopes: {} }, null, 2), 'utf8');\n}\n\nconst trackersRegistry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));\nconst memoryRules = JSON.parse(fs.readFileSync(memoryPath, 'utf8'));\n\nconst now = new Date();\nconst todayIsoDate = now.toISOString().slice(0, 10);\nconst nowMs = now.getTime();\nconst dayMs = 24 * 60 * 60 * 1000;\n\n// 1. Purge expired volatile rules in memory_rules.json (expires_at < today)\nlet memoryChanged = false;\nif (memoryRules.custom_scopes && typeof memoryRules.custom_scopes === 'object') {\n  for (const [scopeName, rules] of Object.entries(memoryRules.custom_scopes)) {\n    if (Array.isArray(rules)) {\n      const filtered = rules.filter((r) => !r.expires_at || r.expires_at >= todayIsoDate);\n      if (filtered.length !== rules.length) {\n        memoryRules.custom_scopes[scopeName] = filtered;\n        memoryChanged = true;\n      }\n    }\n  }\n}\nif (memoryChanged) {\n  fs.writeFileSync(memoryPath, JSON.stringify(memoryRules, null, 2), 'utf8');\n}\n\n// 2. Gather active trackers where include_in_morning_briefing === true\nconst cycleTrackers = [];\nconst overdueCollectionFollowUps = [];\nconst recentActivities = [];\n\nconst trackers = trackersRegistry.trackers || {};\nfor (const [trackerId, tracker] of Object.entries(trackers)) {\n  if (!tracker || tracker.include_in_morning_briefing !== true) continue;\n\n  const dataFilePath = path.join(userDataDir, `data_${trackerId}.json`);\n  const records = fs.existsSync(dataFilePath)\n    ? JSON.parse(fs.readFileSync(dataFilePath, 'utf8'))\n    : [];\n\n  if (tracker.type === 'CYCLE_STATE_MACHINE') {\n    const steps = Array.isArray(tracker.cycle_config?.steps) && tracker.cycle_config.steps.length > 0\n      ? tracker.cycle_config.steps\n      : ['Step 1'];\n    const currentIndex = Number(tracker.cycle_config?.current_index || 0) % steps.length;\n    cycleTrackers.push({\n      tracker_id: trackerId,\n      display_name: tracker.display_name || trackerId,\n      current_step: steps[currentIndex],\n      current_index: currentIndex,\n      steps,\n      last_updated: tracker.cycle_config?.last_updated || null\n    });\n  } else if (tracker.type === 'COLLECTION_TABLE') {\n    const cutoff10Days = nowMs - 10 * dayMs;\n    const pendingMatches = records.filter((r) => {\n      const statusStr = String(r.status || r.statut || r.state || '').toLowerCase();\n      const isPendingQuote = ['quote', 'devis', 'pending', 'attente', 'sent', 'envoyé'].some((kw) => statusStr.includes(kw));\n      if (!isPendingQuote) return false;\n      const refDate = Date.parse(r.updated_at || r.created_at || r.date || '');\n      return !Number.isNaN(refDate) && refDate <= cutoff10Days;\n    });\n    if (pendingMatches.length > 0) {\n      overdueCollectionFollowUps.push({\n        tracker_id: trackerId,\n        display_name: tracker.display_name || trackerId,\n        overdue_count: pendingMatches.length,\n        items: pendingMatches.slice(0, 5)\n      });\n    }\n  } else if (tracker.type === 'ACTIVITY_LOG') {\n    const cutoff7Days = nowMs - 7 * dayMs;\n    const recent = records.filter((r) => {\n      const refDate = Date.parse(r.created_at || r.updated_at || r.date || '');\n      return !Number.isNaN(refDate) && refDate >= cutoff7Days;\n    });\n    recentActivities.push({\n      tracker_id: trackerId,\n      display_name: tracker.display_name || trackerId,\n      recent_7d_count: recent.length,\n      recent_entries: recent.slice(-10)\n    });\n  }\n}\n\nconst inputPayload = $input.first()?.json?.body || $input.first()?.json || {};\nconst customFocus = inputPayload.custom_focus || '';\nconst overrideSuggestion = inputPayload.override_suggestion || '';\n\nreturn [\n  {\n    json: {\n      current_date: todayIsoDate,\n      current_timestamp: now.toISOString(),\n      cycle_trackers: cycleTrackers,\n      overdue_follow_ups: overdueCollectionFollowUps,\n      recent_activities_7d: recentActivities,\n      morning_rules: memoryRules.morning_rules || [],\n      custom_scopes: memoryRules.custom_scopes || {},\n      custom_focus: customFocus,\n      override_suggestion: overrideSuggestion\n    }\n  }\n];"
+      },
+      "id": "b2a00002-0003-4000-8000-000000000003",
+      "name": "Gather Morning Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Génère le briefing matinal TDAH pour la journée du ' + $json.current_date + '.' + ($json.custom_focus ? ' Focus demandé : ' + $json.custom_focus + '.' : '') + ($json.override_suggestion ? ' Suggestion imposée/relancée : ' + $json.override_suggestion + '.' : '') }}",
+        "options": {
+          "maxIterations": 2,
+          "systemMessage": "=Tu es Jarvis, prothèse exécutive TDAH bienveillante. Tu rédiges le Briefing Matinal quotidien destiné à être envoyé sur Discord.\nDate : {{ $json.current_date }}.\n\n### GARDE-FOUS CLINIQUES TDAH (STRICTEMENT OBLIGATOIRES)\n- Format ultra-concis : MAXIMUM 4 à 5 lignes courtes au total. Ton chaleureux, énergisant, zéro culpabilité (No Shame / No Streaks), en français.\n- Ligne 1 (État des Trackers) : Indique clairement l'étape du jour pour chaque tracker `CYCLE_STATE_MACHINE` (ex: `🏋️ **Muscu :** Aujourd'hui c'est **Séance A** (ou dis-moi si on décale).`) ainsi que toute relance urgente détectée dans `overdue_follow_ups` (devis/items > 10 jours). Si aucun tracker actif, fais un accueil matinal léger.\n- Ligne 2 (Plan Prioritaire Si/Alors - Gollwitzer) : Formule UNE priorité concrète sous la forme stricte : `🎯 **Plan Si/Alors :** Si [Déclencheur concret], alors [Micro-action physique de < 2 min]`.\n- Ligne 3 (Suggestion d'Activité Négociable) : Propose UNE activité stimulante et variée en tenant compte de `morning_rules` et de `recent_activities_7d` (ex: Sandbox Ableton Live chronométré de 45 min [Sound Design OU Arrangement] se terminant par un export MP3 de 15s, session mix DJ, ou micro-sprint code/admin) et rappelle explicitement que l'utilisateur peut répondre à la voix pour accepter, changer ou décaler.\n\n### DONNÉES DU MATIN\n- Trackers de Cycle (`CYCLE_STATE_MACHINE`) : {{ JSON.stringify($json.cycle_trackers) }}\n- Relances > 10 jours (`COLLECTION_TABLE`) : {{ JSON.stringify($json.overdue_follow_ups) }}\n- Activités récentes 7j (`ACTIVITY_LOG`) : {{ JSON.stringify($json.recent_activities_7d) }}\n- Règles matinales (`morning_rules`) : {{ JSON.stringify($json.morning_rules) }}\n- Scopes contextuels (`custom_scopes`) : {{ JSON.stringify($json.custom_scopes) }}"
+        }
+      },
+      "id": "b2a00002-0004-4000-8000-000000000004",
+      "name": "Generate ADHD Morning Briefing",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        800,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "b2a00002-0005-4000-8000-000000000005",
+      "name": "Google Gemini Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        800,
+        560
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GEMINI_CREDENTIAL_ID",
+          "name": "Google Gemini API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst crypto = require('crypto');\nconst https = require('https');\nconst { URL } = require('url');\n\nconst userDataDir = '/home/node/user_data';\nconst memoryPath = path.join(userDataDir, 'memory_rules.json');\n\nconst briefingText = ($input.first().json.output || '').trim();\nconst nowIso = new Date().toISOString();\nconst today = nowIso.slice(0, 10);\n\n// 1. Save today's briefing state in memory_rules.json under custom_scopes.today_briefing_state\nconst memory = fs.existsSync(memoryPath)\n  ? JSON.parse(fs.readFileSync(memoryPath, 'utf8'))\n  : { morning_rules: [], custom_scopes: {} };\n\nif (!memory.custom_scopes || typeof memory.custom_scopes !== 'object') {\n  memory.custom_scopes = {};\n}\n\nmemory.custom_scopes.today_briefing_state = [\n  {\n    id: crypto.randomUUID(),\n    instruction: `Briefing matinal proposé le ${today} : ${briefingText}`,\n    volatile: true,\n    expires_at: today,\n    created_at: nowIso\n  }\n];\n\nfs.writeFileSync(memoryPath, JSON.stringify(memory, null, 2), 'utf8');\n\n// 2. Dispatch to Discord via DISCORD_BRIEFING_WEBHOOK_URL if configured\nconst webhookUrl = (process.env.DISCORD_BRIEFING_WEBHOOK_URL || '').trim();\nlet discordSent = false;\nlet discordWarning = null;\n\nfunction postDiscordWebhook(targetUrl, payloadObj) {\n  return new Promise((resolve, reject) => {\n    const parsed = new URL(targetUrl);\n    const bodyStr = JSON.stringify(payloadObj);\n    const req = https.request(\n      {\n        hostname: parsed.hostname,\n        port: parsed.port || 443,\n        path: parsed.pathname + parsed.search,\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'Content-Length': Buffer.byteLength(bodyStr)\n        }\n      },\n      (res) => {\n        let resBody = '';\n        res.on('data', (chunk) => { resBody += chunk; });\n        res.on('end', () => {\n          if (res.statusCode >= 200 && res.statusCode < 300) {\n            resolve(true);\n          } else {\n            reject(new Error(`Discord HTTP ${res.statusCode}: ${resBody}`));\n          }\n        });\n      }\n    );\n    req.on('error', reject);\n    req.write(bodyStr);\n    req.end();\n  });\n}\n\nif (webhookUrl && webhookUrl.startsWith('http') && !webhookUrl.includes('/xxx/yyy')) {\n  try {\n    await postDiscordWebhook(webhookUrl, {\n      username: 'Jarvis Morning Briefing',\n      content: briefingText\n    });\n    discordSent = true;\n  } catch (err) {\n    discordWarning = err.message;\n  }\n} else {\n  discordWarning = 'DISCORD_BRIEFING_WEBHOOK_URL is empty or placeholder; skipped Discord HTTP dispatch.';\n}\n\nreturn [\n  {\n    json: {\n      status: 'ok',\n      discord_sent: discordSent,\n      ...(discordWarning ? { warning: discordWarning } : {}),\n      briefing: briefingText,\n      timestamp: nowIso\n    }\n  }\n];"
+      },
+      "id": "b2a00002-0006-4000-8000-000000000006",
+      "name": "Save Briefing State & Send to Discord",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "b2a00002-0007-4000-8000-000000000007",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1380,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Daily 08:30 Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gather Morning Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Morning Briefing": {
+      "main": [
+        [
+          {
+            "node": "Gather Morning Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gather Morning Context": {
+      "main": [
+        [
+          {
+            "node": "Generate ADHD Morning Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate ADHD Morning Briefing",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate ADHD Morning Briefing": {
+      "main": [
+        [
+          {
+            "node": "Save Briefing State & Send to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Briefing State & Send to Discord": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "versionId": "sprint1-step1-2-morning-briefing",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "name": "sprint-1"
+    },
+    {
+      "name": "morning-briefing"
+    }
+  ]
+}
+

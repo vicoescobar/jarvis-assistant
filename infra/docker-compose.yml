@@ -17,8 +17,10 @@ services:
       - N8N_PROXY_HOPS=1
       - EXECUTIONS_DATA_PRUNE=true
       - EXECUTIONS_DATA_MAX_AGE=168
-      - NODE_FUNCTION_ALLOW_BUILTIN=fs,path,crypto
+      - NODE_FUNCTION_ALLOW_BUILTIN=fs,path,crypto,https,url
       - N8N_RUNNERS_ENABLED=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - DISCORD_BRIEFING_WEBHOOK_URL=${DISCORD_BRIEFING_WEBHOOK_URL:-}
     volumes:
       - ./n8n_data:/home/node/.n8n
       - ./user_data:/home/node/user_data

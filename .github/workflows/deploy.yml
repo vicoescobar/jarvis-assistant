@@ -18,6 +18,9 @@ jobs:
           script: |
             cd /home/jarvis/app
             git pull origin main
-            mkdir -p /home/jarvis/app/infra/n8n_data
-            sudo chown -R 1000:1000 /home/jarvis/app/infra/n8n_data
+            mkdir -p /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data
+            [ -f /home/jarvis/app/infra/user_data/trackers_registry.json ] || echo '{"trackers":{}}' > /home/jarvis/app/infra/user_data/trackers_registry.json
+            [ -f /home/jarvis/app/infra/user_data/memory_rules.json ] || echo '{"morning_rules":[],"custom_scopes":{}}' > /home/jarvis/app/infra/user_data/memory_rules.json
+            sudo chown -R 1000:1000 /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data
             sudo docker compose --env-file /home/jarvis/app/.env -f /home/jarvis/app/infra/docker-compose.yml up -d --remove-orphans
+            sudo docker exec -u node jarvis-n8n n8n import:workflow --separate --input=/home/node/workflows/ || true

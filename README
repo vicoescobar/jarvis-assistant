@@ -1,22 +1,59 @@
-# Jarvis Assistant — Event-Driven Personal Orchestrator
+# Jarvis Assistant — Self-Extending Event-Driven Personal Orchestrator
 
-Assistant personnel auto-hébergé conçu pour réduire la charge mentale cognitive, automatiser le tri d'informations multi-sources (Gmail, Outlook, Discord) et piloter des routines quotidiennes par commandes vocales ou messagerie.
+**Jarvis Assistant** is a self-hosted, open-source-ready personal executive assistant built on an **event-driven architecture**. Designed to minimize cognitive load and eliminate friction (< 2-minute interactions), it combines **n8n** workflow orchestration, **Google Gemini Flash** (structured JSON outputs & Function Calling), bidirectional mobile voice interaction, and a **Schema-less Dynamic Trackers Engine** that extends its own data models at runtime via voice commands.
 
-## Architecture & Stack Technique
+---
 
-- **Orchestration & Workflows :** [n8n](https://n8n.io/) (conteneurisé via Docker)
-- **IA & Extraction Structurée :** Google Gemini Flash API (JSON Schema enforcement, synthèse asynchrone)
-- **Intégrations :** Google Workspace API (Gmail, Calendar, Tasks, Drive), Discord / WhatsApp Webhooks
-- **Infrastructure & CI/CD :** VPS Linux (OVH), Reverse Proxy Nginx (CloudPanel + SSL Let's Encrypt), déploiement continu via **GitHub Actions**
-- **Dashboard Web *(en cours — Sprint 3)* :** Vue.js 3 + API REST (Spring Boot / Laravel)
+## Core Architectural Highlights
 
-## Structure du dépôt
+### 1. Self-Extending "Schema-less" Dynamic Trackers Engine
+Rather than hardcoding rigid personal workflows into the public repository, Jarvis strictly separates its **generic open-source engine** from **private runtime data**:
+* **Public Repository (`vicoescobar/jarvis-assistant`):** Contains only generic orchestration pipelines, 4 universal meta-tools (`create_or_update_tracker_schema`, `mutate_tracker_record`, `query_tracker_records`, `update_memory_rule`), and the dynamic UI renderer.
+* **Private Runtime Volume (`/infra/user_data/` — gitignored):** Users define custom state machines (e.g., sliding workout cycles), collection tables (e.g., freelance CRM quotes), activity logs, and persistent filtering rules **entirely via voice commands at runtime** without touching code or committing personal use-cases to Git.
 
-- `infra/` : Configuration Docker Compose et modèles de variables d'environnement
-- `workflows/` : Exports JSON versionnés des pipelines n8n
-- `docs/` : Diagrammes d'architecture Mermaid et guides de configuration
-- `backend/` & `frontend/` : Cockpit web Jarvis (Sprint 3)
+### 2. Evolutionary Contextual Memory (Dynamic Context Injection)
+Users can refine assistant behavior on the fly using natural voice feedback (e.g., *"Ignore automated newsletters from this sender from now on"*). Rules are persisted in `memory_rules.json` on the host volume and dynamically injected into Gemini's system prompts prior to every email or message triage.
 
-## Déploiement
+### 3. Cognitive Accessibility & Zero-Guilt UX
+* **Atomic Micro-Stepping & Implementation Intentions:** Translates complex tasks into concrete `"If [Trigger], then [2-minute physical micro-action]"` plans.
+* **3:00 AM Night Amnesty:** Unfinished daily tasks are silently rolled over into a secondary *Parking* list overnight with zero broken streaks or red warning indicators.
+* **Adaptive Morning Briefing:** Adjusts daily priorities and suggests balanced activities based on recent activity logs, supporting interactive negotiation via voice or chat.
 
-Tout push sur la branche `main` déclenche le workflow `.github/workflows/deploy.yml` qui synchronise le serveur via SSH et redéploie la stack Docker sans interruption.
+### 4. Bidirectional Mobile Voice & Unified PWA Cockpit
+* **1-Tap Mobile Voice Entry:** Direct audio/webhook bridge (`POST /webhook/voice-command`) accessible from an Android home-screen shortcut (`HTTP Shortcuts` / PWA Web App Manifest shortcut) with direct Text-to-Speech feedback.
+* **Dynamic Vue.js 3 Dashboard (Sprint 3):** Unified Desktop cockpit and installable mobile PWA that automatically generates UI views and tables from `trackers_registry.json`.
+
+---
+
+## Tech Stack
+
+* **Orchestration & Automation:** [n8n](https://n8n.io/) (Dockerized, CLI GitOps workflow synchronization)
+* **AI & Structured Reasoning:** Google Gemini Flash API (`responseSchema` JSON enforcement, native audio processing, Function Calling)
+* **External Integrations:** Google Workspace (Gmail, Calendar, Tasks, Drive), Microsoft 365 / Outlook, Discord / WhatsApp Webhooks
+* **Frontend & Backend (Sprint 3):** Vue.js 3 + Tailwind CSS (PWA) & REST API Gateway (Spring Boot / Laravel)
+* **Infrastructure & DevOps:** Linux VPS (OVH), Nginx Reverse Proxy (CloudPanel + Let's Encrypt SSL), **GitHub Actions** CI/CD, Agentic Context Engineering (`.agent`, `.agents/skills/`, pre-commit secret scanning hooks)
+
+---
+
+## Repository Structure
+
+```text
+jarvis-assistant/
+├── .agent                          # Global context & architectural guardrails for AI IDE agents
+├── .agents/
+│   ├── hooks/
+│   │   └── pre-commit-secrets.sh   # Deterministic Git hook blocking leaked API keys/tokens & validating JSON
+│   └── skills/                     # Modular domain & step-by-step specs (Dual-Loop Agentic Workflow)
+├── .github/
+│   └── workflows/
+│       └── deploy.yml              # CI/CD pipeline: SSH auto-deploy & volume initialization on push to main
+├── docs/
+│   └── architecture.mmd            # System architecture diagram (Mermaid)
+├── infra/
+│   ├── docker-compose.yml          # Container stack (n8n + isolated user_data & workflows volumes)
+│   └── .env.example                # Environment variables template
+├── workflows/                      # Version-controlled n8n workflow definitions (sanitized JSON)
+├── scripts/                        # Utility scripts (e.g., periodic Discord channel export)
+├── backend/                        # REST API Gateway (Sprint 3)
+├── frontend/                       # Dynamic Vue.js 3 Dashboard & Mobile PWA (Sprint 3)
+└── README.md

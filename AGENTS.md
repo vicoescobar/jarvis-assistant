@@ -15,10 +15,11 @@
   - SSH key-only authentication (`~/.ssh/github_deploy`)
   - Passwordless sudoers restricted strictly to `/snap/bin/docker` and `/usr/bin/chown` (`/etc/sudoers.d/jarvis-docker`).
 - **Docker Runtime:** Installed via Ubuntu Snap.
-  - Volume `/home/jarvis/app/infra/n8n_data` MUST maintain `1000:1000` ownership (internal `node` user in n8n container).
+  - Volumes `/home/jarvis/app/infra/n8n_data` and `/home/jarvis/app/infra/user_data` MUST maintain `1000:1000` ownership (internal `node` user in n8n container).
+  - `NODE_FUNCTION_ALLOW_BUILTIN=fs,path,crypto` enabled on `jarvis-n8n` so the 4 Meta-Tools can read/write runtime JSON files in `/home/node/user_data/`.
 - **Reverse Proxy & SSL:** CloudPanel (Nginx) on domain `https://jarvis.victor-giroud.fr/` (IONOS domain `victor-giroud.fr`) with Let's Encrypt SSL forwarding to `http://127.0.0.1:5678`.
 - **Orchestrator:** `jarvis-n8n` (`docker.n8n.io/n8nio/n8n:latest`) with lifetime Community License unlocked (Folders & Advanced Debugging enabled).
-- **CI/CD Pipeline:** Every push to `main` triggers `.github/workflows/deploy.yml`, which connects via SSH as `jarvis`, pulls `main`, enforces `1000:1000` on `n8n_data`, and runs `docker compose up -d --remove-orphans`.
+- **CI/CD Pipeline:** Every push to `main` triggers `.github/workflows/deploy.yml`, which connects via SSH as `jarvis`, pulls `main`, initializes `trackers_registry.json` and `memory_rules.json` in `infra/user_data` if missing, enforces `1000:1000` on `n8n_data` and `user_data`, runs `docker compose up -d --remove-orphans`, and auto-imports versioned workflows via `n8n import:workflow --separate --input=/home/node/workflows/`.
 
 ---
 
@@ -43,13 +44,16 @@
 - `.agent` : Master context file for AI coding agents
 - `.agents/hooks/pre-commit-secrets.sh` : Blocks API keys/tokens in `workflows/*.json` and source code
 - `.agents/skills/adhd-ux-guardrails/SKILL.md` : Clinical ADHD UX & prompt rules
+- `.agents/skills/dual-loop-workflow/SKILL.md` : Synchronizing specs and implementation reports between NotebookLM and Antigravity IDE
 - `.agents/skills/n8n-workflow-builder/SKILL.md` : n8n JSON & Gemini structured schema rules
+- `.agents/skills/sprint1-dynamic-trackers-engine/SKILL.md` : Schema-less Dynamic Trackers & Context Memory Engine (Step 1.1)
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
-- `docs/architecture.mmd` : Mermaid system diagram
-- `infra/docker-compose.yml` : Production containers (bound strictly to `127.0.0.1`)
-- `infra/.env.example` : Environment template
-- `workflows/` : Versioned JSON exports of n8n workflows
+- `docs/achitecture.mmd` : Mermaid system diagram
+- `infra/docker-compose.yml` : Production containers (bound strictly to `127.0.0.1`, mounting `n8n_data`, `user_data`, and `workflows`)
+- `infra/user_data/` : Private gitignored runtime volume (`trackers_registry.json`, `data_<tracker_id>.json`, `memory_rules.json`)
+- `infra/.env.exemple` : Environment template
+- `workflows/` : Versioned JSON exports of n8n workflows (`01-voice-agent-core.json`, etc.)
 - `scripts/` : Utility scripts (Discord export, backups)
 - `backend/` : Sprint 3 REST API (Spring Boot or Laravel)
 - `frontend/` : Sprint 3 Jarvis Web Cockpit (Vue.js 3 + Tailwind CSS)
@@ -58,13 +62,14 @@
 
 ## 5. Roadmap & Sprints
 - **Sprint 0 (DONE):** Docker n8n infra, CloudPanel SSL reverse proxy (`https://jarvis.victor-giroud.fr/`), isolated `jarvis` Linux user, GitHub Monorepo, and SSH GitHub Actions auto-deploy.
-- **Sprint 1 (IN PROGRESS — Vital MVP):**
+- **Sprint 1 (IN PROGRESS — Vital MVP & Dynamic Trackers Engine):**
+  - **Step 1.1 (DONE):** Private `user_data` volume + Schema-less Dynamic Trackers & Context Memory Engine (`workflows/01-voice-agent-core.json` exposing `POST /webhook/voice-command` with the 4 universal Meta-Tools: `create_or_update_tracker_schema`, `mutate_tracker_record`, `query_tracker_records`, `update_memory_rule`).
   - Connect Gemini Flash API & Google Workspace OAuth2 in n8n.
   - Setup private Discord/WhatsApp notification channel.
-  - `01-morning-briefing.json`: Dynamic morning briefing + "Si X, alors Y" plan.
-  - `02-gmail-stage-filter.json`: Daily internship email triage + Google Tasks creation.
-  - `03-voice-bridge-tasks.json`: Poll Google Tasks for `#jarvis` voice commands and execute asynchronously.
-  - `04-night-amnesty.json`: 3:00 AM silent task rollover to "Parking" list.
+  - Morning briefing + "Si X, alors Y" plan (`morning_rules` + active trackers).
+  - Daily internship email triage + Google Tasks creation.
+  - Poll Google Tasks for `#jarvis` voice commands and execute asynchronously.
+  - 3:00 AM Night Amnesty silent task rollover to "Parking" list.
 - **Sprint 2 (Student & Creative Ecosystem):** School Outlook integration, Promo Discord digest, Ableton 45-min Sandbox timer & MP3 exit ritual, Google Drive "Boîte à vrac".
 - **Sprint 3 (Jarvis Cockpit & Analytics):** Fullstack Web Dashboard (Vue.js 3 + Spring Boot/Laravel API), contextual AI chat, 5-second Sport/Nutrition logger, Weekly CBT review agent.
 

@@ -5,7 +5,7 @@ description: Setup the private user_data volume and implement the Schema-less Dy
 # Sprint 1 (Step 1.1) — Dynamic Trackers & Context Memory Engine
 
 ## 1. Architectural Objective (Privacy & Replicability)
-Jarvis must be **100% generic and open-source ready** in the public Git repository (`vicoescobar/jarvis-assistant`), while allowing the user to create custom life/business trackers (e.g., sliding workout cycles, freelance CRM quotes, activity history) **entirely via voice commands at runtime** without ever editing code or committing personal use-cases to Git.
+Jarvis must be **100% generic and open-source ready** in the public Git repository (`vicoescobar/jarvis-assistant`), while allowing the user to create custom life/business trackers and contextual memory rules **entirely via voice commands at runtime** without ever editing code or committing personal use-cases to Git.
 
 ---
 
@@ -27,11 +27,11 @@ Mount `/home/jarvis/app/infra/user_data` into the `jarvis-n8n` container at `/ho
       - ../workflows:/home/node/workflows
 
 ### C. Update `.github/workflows/deploy.yml`
-Ensure `/home/jarvis/app/infra/user_data` is created on the VPS with UID `1000:1000` (`node` user) and initialize default empty JSON files if they do not exist yet:
+Ensure `/home/jarvis/app/infra/user_data` is created on the VPS with UID `1000:1000` (`node` user) and initialize minimal default JSON files if they do not exist yet (only `morning_rules` is pre-initialized as a core feature; all other scopes are created dynamically by the agent):
 
     mkdir -p /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data
     [ -f /home/jarvis/app/infra/user_data/trackers_registry.json ] || echo '{"trackers":{}}' > /home/jarvis/app/infra/user_data/trackers_registry.json
-    [ -f /home/jarvis/app/infra/user_data/memory_rules.json ] || echo '{"email_filters":[],"summary_preferences":[],"morning_rules":[]}' > /home/jarvis/app/infra/user_data/memory_rules.json
+    [ -f /home/jarvis/app/infra/user_data/memory_rules.json ] || echo '{"morning_rules":[],"custom_scopes":{}}' > /home/jarvis/app/infra/user_data/memory_rules.json
     sudo chown -R 1000:1000 /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data
 
 ---
@@ -62,8 +62,29 @@ Stores the schema and behavior of all user-created trackers:
 ### 2. `data_<tracker_id>.json`
 Stores the records for a given tracker (array of JSON objects with automatic `id`, `created_at`, and `updated_at` timestamps).
 
-### 3. `memory_rules.json`
-Stores persistent user instructions dictated via voice (`email_filters`, `summary_preferences`, `morning_rules`).
+### 3. `memory_rules.json` (Base `morning_rules` + Agent-Created Dynamic Scopes)
+Stores core morning briefing rules and arbitrary dynamic/volatile context scopes created on the fly by the agent:
+
+    {
+      "morning_rules": [
+        {
+          "id": "rule_uuid",
+          "instruction": "string",
+          "created_at": "ISO-8601"
+        }
+      ],
+      "custom_scopes": {
+        "<dynamic_scope_name>": [
+          {
+            "id": "rule_uuid",
+            "instruction": "string",
+            "volatile": true,
+            "expires_at": "YYYY-MM-DD or null",
+            "created_at": "ISO-8601"
+          }
+        ]
+      }
+    }
 
 ---
 
@@ -72,7 +93,7 @@ Create the base workflow `workflows/01-voice-agent-core.json` exposing a Webhook
 1. `create_or_update_tracker_schema`: Creates or updates a tracker definition in `trackers_registry.json` and initializes `data_<tracker_id>.json`.
 2. `mutate_tracker_record`: Inserts/updates a record in `data_<tracker_id>.json`, OR advances/skips/shifts the `current_index` of a `CYCLE_STATE_MACHINE` tracker without guilt.
 3. `query_tracker_records`: Reads `data_<tracker_id>.json` and filters records by status, date elapsed (e.g., pending items older than X days), or recency (last 7 days of activities).
-4. `update_memory_rule`: Appends or removes a rule in `memory_rules.json`.
+4. `update_memory_rule`: Adds, updates, or deletes a rule inside `morning_rules` OR dynamically creates/updates any `<dynamic_scope_name>` inside `custom_scopes` (supporting `volatile` / `expires_at` for temporary context) in `memory_rules.json`.
 
 ---
 

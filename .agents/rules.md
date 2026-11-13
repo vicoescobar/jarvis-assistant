@@ -10,8 +10,9 @@ Event-driven personal orchestrator & ADHD executive prosthesis, built as a produ
 - **CI/CD:** GitHub Actions auto-deploys `main` branch via SSH.
 
 ## Mandatory Guardrails
-1. **Never commit secrets:** `.env` and `infra/n8n_data/` must remain untracked.
+1. **Never commit secrets or private runtime data:** `.env`, `infra/n8n_data/`, and `infra/user_data/` must remain untracked.
 2. **Use specialized skills:**
+   - When working on dynamic trackers or runtime memory -> load `skills/sprint1-dynamic-trackers-engine/SKILL.md`.
    - When creating or editing n8n workflows/prompts -> load `skills/n8n-workflow-builder/SKILL.md`.
    - When designing user interactions, notifications, or Dashboard UI -> load `skills/adhd-ux-guardrails/SKILL.md`.
    - When touching `infra/` or `.github/workflows/` -> load `skills/vps-infra-deploy/SKILL.md`.

@@ -6,6 +6,10 @@ infra/.env
 n8n_data/
 infra/n8n_data/
 
+# Private runtime trackers & contextual memory
+user_data/
+infra/user_data/
+
 # Système & Dépendances futures
 .DS_Store
 node_modules/

@@ -1,0 +1,257 @@
+{
+  "id": "01-voice-agent-core",
+  "name": "01 - Voice Agent Core (Dynamic Trackers & Memory Engine)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "voice-command",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b1a00001-0001-4000-8000-000000000001",
+      "name": "Webhook Voice Command",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        340
+      ],
+      "webhookId": "jarvis-voice-command-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst userDataDir = '/home/node/user_data';\nconst registryPath = path.join(userDataDir, 'trackers_registry.json');\nconst memoryPath = path.join(userDataDir, 'memory_rules.json');\n\nif (!fs.existsSync(userDataDir)) {\n  fs.mkdirSync(userDataDir, { recursive: true });\n}\n\nif (!fs.existsSync(registryPath)) {\n  fs.writeFileSync(registryPath, JSON.stringify({ trackers: {} }, null, 2), 'utf8');\n}\n\nif (!fs.existsSync(memoryPath)) {\n  fs.writeFileSync(memoryPath, JSON.stringify({ morning_rules: [], custom_scopes: {} }, null, 2), 'utf8');\n}\n\nconst trackersRegistry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));\nconst memoryRules = JSON.parse(fs.readFileSync(memoryPath, 'utf8'));\n\n// Purge expired volatile rules automatically\nconst todayIsoDate = new Date().toISOString().slice(0, 10);\nlet memoryChanged = false;\nif (memoryRules.custom_scopes && typeof memoryRules.custom_scopes === 'object') {\n  for (const [scopeName, rules] of Object.entries(memoryRules.custom_scopes)) {\n    if (Array.isArray(rules)) {\n      const filtered = rules.filter((r) => !r.expires_at || r.expires_at >= todayIsoDate);\n      if (filtered.length !== rules.length) {\n        memoryRules.custom_scopes[scopeName] = filtered;\n        memoryChanged = true;\n      }\n    }\n  }\n}\nif (memoryChanged) {\n  fs.writeFileSync(memoryPath, JSON.stringify(memoryRules, null, 2), 'utf8');\n}\n\nconst body = $input.first().json.body || $input.first().json || {};\nconst voiceCommand = body.command || body.text || body.query || body.message || '';\n\nreturn [\n  {\n    json: {\n      voice_command: voiceCommand,\n      current_date: todayIsoDate,\n      current_timestamp: new Date().toISOString(),\n      trackers_registry: trackersRegistry,\n      memory_rules: memoryRules\n    }\n  }\n];"
+      },
+      "id": "b1a00001-0002-4000-8000-000000000002",
+      "name": "Load Runtime Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.voice_command }}",
+        "options": {
+          "systemMessage": "=Tu es Jarvis, prothèse exécutive TDAH et orchestrateur personnel piloté par la voix.\nDate actuelle : {{ $json.current_date }} ({{ $json.current_timestamp }}).\n\n### GARDE-FOUS CLINIQUES TDAH (STRICTEMENT OBLIGATOIRES)\n1. Zéro Friction (< 2 minutes) : Tes réponses doivent faire MAXIMUM 4 lignes, claires, directes et prêtes à être lues en Text-to-Speech.\n2. Zéro Culpabilité (No Shame / No Streaks) : Aucun reproche, aucun compteur de série brisée, aucun ton moralisateur. Décaler un cycle ou mettre une tâche en pause est une adaptation normale.\n3. Intentions d'Implémentation (Gollwitzer) : Lorsqu'une action prioritaire ou immédiate est définie, formule-la sous la forme : \"Si [Déclencheur concret], alors [Micro-action physique de < 2 min]\".\n4. Règle Sandbox Créative : Toute session musicale/créative est cadrée comme un sandbox chronométré de 45 minutes (Sound Design OU Arrangement) se terminant par un export MP3 de 15 secondes.\n\n### CONTEXTE DYNAMIQUE CHARGÉ DEPUIS /home/node/user_data/\n- Registre des Trackers (`trackers_registry.json`) :\n{{ JSON.stringify($json.trackers_registry) }}\n\n- Règles Mémoire & Scopes (`memory_rules.json`) :\n{{ JSON.stringify($json.memory_rules) }}\n\n### UTILISATION DES 4 META-TOOLS\nTu disposes de 4 outils génériques recevant un argument JSON stringifié (`query`) :\n1. `create_or_update_tracker_schema` : Pour créer ou modifier la structure d'un tracker (`CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, `ACTIVITY_LOG`).\n2. `mutate_tracker_record` : Pour ajouter/modifier une entrée dans `data_<tracker_id>.json` ou avancer/décaler (`advance_cycle`, `skip_or_shift_cycle`, `set_cycle_index`) un tracker `CYCLE_STATE_MACHINE` sans culpabilité.\n3. `query_tracker_records` : Pour lire et filtrer les entrées d'un tracker (par statut, ancienneté `older_than_days` ou récence `recent_days`).\n4. `update_memory_rule` : Pour ajouter, modifier ou supprimer une règle dans `morning_rules` ou dans un scope dynamique `custom_scopes.<dynamic_scope_name>` (avec support `volatile` et `expires_at`)."
+        }
+      },
+      "id": "b1a00001-0003-4000-8000-000000000003",
+      "name": "Jarvis Voice AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        760,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "b1a00001-0004-4000-8000-000000000004",
+      "name": "Google Gemini Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        580
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GEMINI_CREDENTIAL_ID",
+          "name": "Google Gemini API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "create_or_update_tracker_schema",
+        "description": "Crée ou met à jour la définition d'un tracker dans trackers_registry.json et initialise data_<tracker_id>.json. Passe un JSON stringifié contenant: tracker_id (string snake_case), display_name (string), type ('CYCLE_STATE_MACHINE' | 'COLLECTION_TABLE' | 'ACTIVITY_LOG'), include_in_morning_briefing (boolean), cycle_config (optionnel: { steps: string[], current_index: number, last_updated: 'YYYY-MM-DD' }), fields_schema (optionnel: Array<{ name: string, type: 'string' | 'date' | 'status' | 'number', required: boolean }>).",
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst userDataDir = '/home/node/user_data';\nconst registryPath = path.join(userDataDir, 'trackers_registry.json');\n\nlet payload;\ntry {\n  payload = typeof query === 'string' ? JSON.parse(query) : query;\n} catch (err) {\n  return JSON.stringify({ error: 'Invalid JSON input for create_or_update_tracker_schema', details: err.message });\n}\n\nconst trackerId = String(payload.tracker_id || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');\nif (!trackerId) {\n  return JSON.stringify({ error: 'tracker_id is required' });\n}\n\nconst validTypes = ['CYCLE_STATE_MACHINE', 'COLLECTION_TABLE', 'ACTIVITY_LOG'];\nconst trackerType = validTypes.includes(payload.type) ? payload.type : 'ACTIVITY_LOG';\nconst today = new Date().toISOString().slice(0, 10);\n\nconst registry = fs.existsSync(registryPath)\n  ? JSON.parse(fs.readFileSync(registryPath, 'utf8'))\n  : { trackers: {} };\n\nif (!registry.trackers) registry.trackers = {};\nconst existing = registry.trackers[trackerId] || {};\n\nconst updatedTracker = {\n  display_name: payload.display_name || existing.display_name || trackerId,\n  type: trackerType,\n  include_in_morning_briefing: payload.include_in_morning_briefing !== undefined\n    ? Boolean(payload.include_in_morning_briefing)\n    : (existing.include_in_morning_briefing !== undefined ? existing.include_in_morning_briefing : true),\n  cycle_config: trackerType === 'CYCLE_STATE_MACHINE'\n    ? {\n        steps: Array.isArray(payload.cycle_config?.steps) && payload.cycle_config.steps.length > 0\n          ? payload.cycle_config.steps\n          : (existing.cycle_config?.steps || ['Step 1', 'Rest']),\n        current_index: typeof payload.cycle_config?.current_index === 'number'\n          ? payload.cycle_config.current_index\n          : (existing.cycle_config?.current_index || 0),\n        last_updated: payload.cycle_config?.last_updated || existing.cycle_config?.last_updated || today\n      }\n    : (payload.cycle_config || existing.cycle_config || null),\n  fields_schema: Array.isArray(payload.fields_schema)\n    ? payload.fields_schema\n    : (existing.fields_schema || [])\n};\n\nregistry.trackers[trackerId] = updatedTracker;\nfs.writeFileSync(registryPath, JSON.stringify(registry, null, 2), 'utf8');\n\nconst dataFilePath = path.join(userDataDir, `data_${trackerId}.json`);\nif (!fs.existsSync(dataFilePath)) {\n  fs.writeFileSync(dataFilePath, JSON.stringify([], null, 2), 'utf8');\n}\n\nreturn JSON.stringify({\n  status: 'success',\n  tracker_id: trackerId,\n  schema: updatedTracker,\n  data_file: `data_${trackerId}.json`\n});"
+      },
+      "id": "b1a00001-0005-4000-8000-000000000005",
+      "name": "create_or_update_tracker_schema",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "name": "mutate_tracker_record",
+        "description": "Insère ou met à jour une entrée dans data_<tracker_id>.json, OU avance/décale sans culpabilité le current_index d'un tracker CYCLE_STATE_MACHINE. Passe un JSON stringifié contenant: tracker_id (string), operation ('insert' | 'update' | 'advance_cycle' | 'skip_or_shift_cycle' | 'set_cycle_index'), record_id (optionnel, pour update), record_data (objet libre des champs à enregistrer), target_index (optionnel, pour set_cycle_index), step_delta (optionnel, défaut 1).",
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst crypto = require('crypto');\n\nconst userDataDir = '/home/node/user_data';\nconst registryPath = path.join(userDataDir, 'trackers_registry.json');\n\nlet payload;\ntry {\n  payload = typeof query === 'string' ? JSON.parse(query) : query;\n} catch (err) {\n  return JSON.stringify({ error: 'Invalid JSON input for mutate_tracker_record', details: err.message });\n}\n\nconst trackerId = String(payload.tracker_id || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');\nif (!trackerId) {\n  return JSON.stringify({ error: 'tracker_id is required' });\n}\n\nconst registry = fs.existsSync(registryPath)\n  ? JSON.parse(fs.readFileSync(registryPath, 'utf8'))\n  : { trackers: {} };\nconst tracker = registry.trackers?.[trackerId];\nif (!tracker) {\n  return JSON.stringify({ error: `Tracker '${trackerId}' not found in trackers_registry.json` });\n}\n\nconst dataFilePath = path.join(userDataDir, `data_${trackerId}.json`);\nconst records = fs.existsSync(dataFilePath)\n  ? JSON.parse(fs.readFileSync(dataFilePath, 'utf8'))\n  : [];\n\nconst nowIso = new Date().toISOString();\nconst today = nowIso.slice(0, 10);\nconst op = payload.operation || 'insert';\n\nif (['advance_cycle', 'skip_or_shift_cycle', 'set_cycle_index'].includes(op)) {\n  if (!tracker.cycle_config || !Array.isArray(tracker.cycle_config.steps) || tracker.cycle_config.steps.length === 0) {\n    return JSON.stringify({ error: `Tracker '${trackerId}' has no valid cycle_config.steps` });\n  }\n  const steps = tracker.cycle_config.steps;\n  const prevIndex = Number(tracker.cycle_config.current_index || 0);\n  let nextIndex = prevIndex;\n\n  if (op === 'set_cycle_index' && typeof payload.target_index === 'number') {\n    nextIndex = ((payload.target_index % steps.length) + steps.length) % steps.length;\n  } else {\n    const delta = typeof payload.step_delta === 'number' ? payload.step_delta : 1;\n    nextIndex = ((prevIndex + delta) % steps.length + steps.length) % steps.length;\n  }\n\n  tracker.cycle_config.current_index = nextIndex;\n  tracker.cycle_config.last_updated = today;\n  registry.trackers[trackerId] = tracker;\n  fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2), 'utf8');\n\n  const logEntry = {\n    id: crypto.randomUUID(),\n    event: op,\n    previous_step: steps[prevIndex],\n    current_step: steps[nextIndex],\n     ...(payload.record_data || {}),\n    created_at: nowIso,\n    updated_at: nowIso\n  };\n  records.push(logEntry);\n  fs.writeFileSync(dataFilePath, JSON.stringify(records, null, 2), 'utf8');\n\n  return JSON.stringify({\n    status: 'success',\n    operation: op,\n    tracker_id: trackerId,\n    previous_step: steps[prevIndex],\n    current_index: nextIndex,\n    current_step: steps[nextIndex],\n    log_entry: logEntry\n  });\n}\n\nif (op === 'update' && payload.record_id) {\n  const idx = records.findIndex((r) => r.id === payload.record_id);\n  if (idx === -1) {\n    return JSON.stringify({ error: `Record '${payload.record_id}' not found in data_${trackerId}.json` });\n  }\n  records[idx] = {\n    ...records[idx],\n    ...(payload.record_data || {}),\n    id: records[idx].id,\n    created_at: records[idx].created_at,\n    updated_at: nowIso\n  };\n  fs.writeFileSync(dataFilePath, JSON.stringify(records, null, 2), 'utf8');\n  return JSON.stringify({ status: 'success', operation: 'update', record: records[idx] });\n}\n\nconst newRecord = {\n  id: crypto.randomUUID(),\n  ...(payload.record_data || {}),\n  created_at: nowIso,\n  updated_at: nowIso\n};\nrecords.push(newRecord);\nfs.writeFileSync(dataFilePath, JSON.stringify(records, null, 2), 'utf8');\n\nreturn JSON.stringify({\n  status: 'success',\n  operation: 'insert',\n  tracker_id: trackerId,\n  record: newRecord\n});"
+      },
+      "id": "b1a00001-0006-4000-8000-000000000006",
+      "name": "mutate_tracker_record",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "name": "query_tracker_records",
+        "description": "Lit data_<tracker_id>.json et filtre les entrées par statut, ancienneté (older_than_days: ex. éléments en attente depuis plus de X jours) ou récence (recent_days: ex. activités des 7 derniers jours). Passe un JSON stringifié contenant: tracker_id (string), status (optionnel), older_than_days (optionnel, number), recent_days (optionnel, number), limit (optionnel, number).",
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst userDataDir = '/home/node/user_data';\nconst registryPath = path.join(userDataDir, 'trackers_registry.json');\n\nlet payload;\ntry {\n  payload = typeof query === 'string' ? JSON.parse(query) : query;\n} catch (err) {\n  return JSON.stringify({ error: 'Invalid JSON input for query_tracker_records', details: err.message });\n}\n\nconst trackerId = String(payload.tracker_id || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');\nif (!trackerId) {\n  return JSON.stringify({ error: 'tracker_id is required' });\n}\n\nconst registry = fs.existsSync(registryPath)\n  ? JSON.parse(fs.readFileSync(registryPath, 'utf8'))\n  : { trackers: {} };\nconst tracker = registry.trackers?.[trackerId] || null;\n\nconst dataFilePath = path.join(userDataDir, `data_${trackerId}.json`);\nlet records = fs.existsSync(dataFilePath)\n  ? JSON.parse(fs.readFileSync(dataFilePath, 'utf8'))\n  : [];\n\nconst nowMs = Date.now();\nconst dayMs = 24 * 60 * 60 * 1000;\n\nif (payload.status) {\n  const targetStatus = String(payload.status).toLowerCase();\n  records = records.filter((r) => String(r.status || '').toLowerCase() === targetStatus);\n}\n\nif (typeof payload.older_than_days === 'number') {\n  const cutoffMs = nowMs - payload.older_than_days * dayMs;\n  records = records.filter((r) => {\n    const refDate = Date.parse(r.updated_at || r.created_at || r.date || '');\n    return !Number.isNaN(refDate) && refDate <= cutoffMs;\n  });\n}\n\nif (typeof payload.recent_days === 'number') {\n  const cutoffMs = nowMs - payload.recent_days * dayMs;\n  records = records.filter((r) => {\n    const refDate = Date.parse(r.created_at || r.updated_at || r.date || '');\n    return !Number.isNaN(refDate) && refDate >= cutoffMs;\n  });\n}\n\nconst limit = typeof payload.limit === 'number' && payload.limit > 0 ? payload.limit : 50;\nconst resultRecords = records.slice(-limit);\n\nreturn JSON.stringify({\n  status: 'success',\n  tracker_id: trackerId,\n  tracker_definition: tracker,\n  count: resultRecords.length,\n  records: resultRecords\n});"
+      },
+      "id": "b1a00001-0007-4000-8000-000000000007",
+      "name": "query_tracker_records",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "name": "update_memory_rule",
+        "description": "Ajoute, met à jour ou supprime une règle dans morning_rules OU crée/modifie dynamiquement un scope dans custom_scopes.<dynamic_scope_name> (avec support volatile et expires_at) dans memory_rules.json. Passe un JSON stringifié contenant: operation ('add' | 'update' | 'delete'), scope ('morning_rules' ou nom du scope dynamique ex. 'email_triage', 'temporary_context'), rule_id (optionnel, requis pour update/delete), instruction (string), volatile (optionnel, boolean), expires_at (optionnel, 'YYYY-MM-DD' ou null).",
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst crypto = require('crypto');\n\nconst userDataDir = '/home/node/user_data';\nconst memoryPath = path.join(userDataDir, 'memory_rules.json');\n\nlet payload;\ntry {\n  payload = typeof query === 'string' ? JSON.parse(query) : query;\n} catch (err) {\n  return JSON.stringify({ error: 'Invalid JSON input for update_memory_rule', details: err.message });\n}\n\nconst memory = fs.existsSync(memoryPath)\n  ? JSON.parse(fs.readFileSync(memoryPath, 'utf8'))\n  : { morning_rules: [], custom_scopes: {} };\n\nif (!Array.isArray(memory.morning_rules)) memory.morning_rules = [];\nif (!memory.custom_scopes || typeof memory.custom_scopes !== 'object') memory.custom_scopes = {};\n\nconst op = payload.operation || 'add';\nconst scope = String(payload.scope || 'morning_rules').trim();\nconst nowIso = new Date().toISOString();\n\nconst targetArray = scope === 'morning_rules'\n  ? memory.morning_rules\n  : (memory.custom_scopes[scope] = Array.isArray(memory.custom_scopes[scope]) ? memory.custom_scopes[scope] : []);\n\nif (op === 'delete') {\n  const beforeLen = targetArray.length;\n  const filtered = targetArray.filter((r) => r.id !== payload.rule_id && r.instruction !== payload.instruction);\n  if (scope === 'morning_rules') {\n    memory.morning_rules = filtered;\n  } else {\n    memory.custom_scopes[scope] = filtered;\n  }\n  fs.writeFileSync(memoryPath, JSON.stringify(memory, null, 2), 'utf8');\n  return JSON.stringify({\n    status: 'success',\n    operation: 'delete',\n    scope,\n    deleted_count: beforeLen - filtered.length\n  });\n}\n\nif (op === 'update' && payload.rule_id) {\n  const idx = targetArray.findIndex((r) => r.id === payload.rule_id);\n  if (idx === -1) {\n    return JSON.stringify({ error: `Rule '${payload.rule_id}' not found in scope '${scope}'` });\n  }\n  targetArray[idx] = {\n    ...targetArray[idx],\n    instruction: payload.instruction || targetArray[idx].instruction,\n    ...(scope !== 'morning_rules'\n      ? {\n          volatile: payload.volatile !== undefined ? Boolean(payload.volatile) : Boolean(targetArray[idx].volatile),\n          expires_at: payload.expires_at !== undefined ? payload.expires_at : targetArray[idx].expires_at\n        }\n      : {})\n  };\n  fs.writeFileSync(memoryPath, JSON.stringify(memory, null, 2), 'utf8');\n  return JSON.stringify({ status: 'success', operation: 'update', scope, rule: targetArray[idx] });\n}\n\nconst newRule = scope === 'morning_rules'\n  ? {\n      id: crypto.randomUUID(),\n      instruction: String(payload.instruction || ''),\n      created_at: nowIso\n    }\n  : {\n      id: crypto.randomUUID(),\n      instruction: String(payload.instruction || ''),\n      volatile: Boolean(payload.volatile),\n      expires_at: payload.expires_at || null,\n      created_at: nowIso\n    };\n\ntargetArray.push(newRule);\nfs.writeFileSync(memoryPath, JSON.stringify(memory, null, 2), 'utf8');\n\nreturn JSON.stringify({\n  status: 'success',\n  operation: 'add',\n  scope,\n  rule: newRule\n});"
+      },
+      "id": "b1a00001-0008-4000-8000-000000000008",
+      "name": "update_memory_rule",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1280,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'ok', reply: $json.output, timestamp: $now }) }}",
+        "options": {}
+      },
+      "id": "b1a00001-0009-4000-8000-000000000009",
+      "name": "Respond to Voice Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Voice Command": {
+      "main": [
+        [
+          {
+            "node": "Load Runtime Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Runtime Context": {
+      "main": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_or_update_tracker_schema": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mutate_tracker_record": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "query_tracker_records": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_memory_rule": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jarvis Voice AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Voice Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "sprint1-step1-1-voice-agent-core",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "name": "sprint-1"
+    },
+    {
+      "name": "meta-tools"
+    }
+  ]
+}
+

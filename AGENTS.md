@@ -29,13 +29,13 @@
    - **The `#jarvis` Voice Bridge:** Voice commands prefixed with `#jarvis` added to Google Tasks are polled by n8n every 5 minutes, parsed by Gemini Flash, scheduled/executed on the server, and reported back via Discord/WhatsApp.
    - **HyperOS Constraint:** Never run background daemons on the phone (PowerKeeper kills them). All crons/timers run on the OVH VPS; notifications go through FCM-backed channels (Discord / WhatsApp).
 2. **Aggregated Sources:**
-   - **Primary Gmail (`victorgiroud4@gmail.com`):** Daily analysis, internship search filtering (`stage`, `alternance`, `candidature`, `entretien`), automatic action extraction into Google Tasks.
+   - **Primary Google Workspace (`victorgiroud4@gmail.com`):** Unified integration across **Gmail** (daily 24h analysis, internship/job search priority `stage`, `alternance`, `candidature`, `entretien` + dynamic `memory_rules.json` filtering), **Google Calendar** (today's events in morning briefing), **Google Tasks** (`@default` list read for context/deduplication & automatic action creation from urgent emails), and **Google Drive / Docs / Sheets**.
    - **School Microsoft 365 / Outlook:** Integrated via IMAP (`outlook.office365.com:993`), OAuth2, or automatic forwarding (`+ecole` alias) into the unified morning briefing.
    - **Major/Promo Discord Server (No Admin Rights):** Daily digest of announcements/deadlines using `DiscordChatExporter` CLI (run locally or via residential proxy -> pushed to n8n webhook to bypass Cloudflare datacenter IP blocks on OVH) or Discord Announcement Channel following.
 3. **Clinical ADHD Guardrails (Must be enforced in all prompts & UI):**
-   - **Point of Performance (Barkley):** Push actionable notifications (max 4 lines) instead of waiting for the user to open a dashboard.
+   - **Point of Performance (Barkley):** Push actionable notifications (max 4-5 well-spaced sections) instead of waiting for the user to open a dashboard.
    - **Implementation Intentions (Gollwitzer):** Format daily priorities strictly as *"Si [Déclencheur concret], alors [Micro-action physique de < 2 min]"*.
-   - **Zero Shame / Night Amnesty (Sirois & Pychyl):** No red badges, broken streaks, or guilt-tripping language. A 3:00 AM cron silently moves unfinished daily tasks into a secondary "Parking / Réservoir" Google Tasks list.
+   - **Zero Shame / No Night Amnesty (Sirois & Pychyl):** No red badges, broken streaks, or guilt-tripping language. Unfinished tasks are NEVER automatically moved or deleted; they remain untouched in the user's primary Google Tasks list (`@default`).
    - **Ableton Live Sandbox Protocol (Peak-End Rule):** Prevent post-hyperfocus perfectionism aversion. Frame music sessions strictly as 45-minute timed sandboxes ("Sound Design" OR "Arrangement"). At 45 minutes, n8n pings the user to export a 15-second MP3 snippet to close on a tangible win.
 
 ---
@@ -48,13 +48,14 @@
 - `.agents/skills/n8n-workflow-builder/SKILL.md` : n8n JSON & Gemini structured schema rules
 - `.agents/skills/sprint1-dynamic-trackers-engine/SKILL.md` : Schema-less Dynamic Trackers & Context Memory Engine (Step 1.1)
 - `.agents/skills/sprint1-morning-briefing-discord/SKILL.md` : Discord Outbound Channel & Adaptive Morning Briefing (Step 1.2)
+- `.agents/skills/sprint1-google-workspace-memory/SKILL.md` : Google Workspace Sync & Long-Term Memory Compression (Step 1.3)
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram
 - `infra/docker-compose.yml` : Production containers (bound strictly to `127.0.0.1`, mounting `n8n_data`, `user_data`, and `workflows`)
-- `infra/user_data/` : Private gitignored runtime volume (`trackers_registry.json`, `data_<tracker_id>.json`, `memory_rules.json`)
+- `infra/user_data/` : Private gitignored runtime volume (`trackers_registry.json`, `data_<tracker_id>.json`, `archive_<tracker_id>.json`, `memory_rules.json`)
 - `infra/.env.exemple` : Environment template
-- `workflows/` : Versioned JSON exports of n8n workflows (`01-voice-agent-core.json`, `02-morning-briefing.json`, etc.)
+- `workflows/` : Versioned JSON exports of n8n workflows (`01-voice-agent-core.json`, `02-morning-briefing.json`, `03-memory-compression.json`, etc.)
 - `scripts/` : Utility scripts (Discord export, backups)
 - `backend/` : Sprint 3 REST API (Spring Boot or Laravel)
 - `frontend/` : Sprint 3 Jarvis Web Cockpit (Vue.js 3 + Tailwind CSS)
@@ -66,10 +67,8 @@
 - **Sprint 1 (IN PROGRESS — Vital MVP & Dynamic Trackers Engine):**
   - **Step 1.1 (DONE):** Private `user_data` volume + Schema-less Dynamic Trackers & Context Memory Engine (`workflows/01-voice-agent-core.json` exposing `POST /webhook/voice-command` with the 4 universal Meta-Tools: `create_or_update_tracker_schema`, `mutate_tracker_record`, `query_tracker_records`, `update_memory_rule`).
   - **Step 1.2 (DONE):** Private Discord notification channel (`DISCORD_BRIEFING_WEBHOOK_URL`) + Adaptive & Negotiable Morning Briefing (`workflows/02-morning-briefing.json` triggered at 08:30 Europe/Paris & `POST /webhook/morning-briefing`) + zero-guilt cycle shift (`defaultDelta = 0` on `skip_or_shift_cycle`).
-  - Connect Google Workspace OAuth2 in n8n.
-  - Daily internship email triage + Google Tasks creation.
+  - **Step 1.3 (DONE):** Google Workspace OAuth2 integration in `workflows/02-morning-briefing.json` (Google Calendar events, Gmail 24h internship/rule triage, Google Tasks `@default` read/deduplication & automatic task creation), removal of Night Amnesty, and Monthly Long-Term Memory Compression (`workflows/03-memory-compression.json` running on the 1st of every month at 03:00 & `POST /webhook/compress-memory`).
   - Poll Google Tasks for `#jarvis` voice commands and execute asynchronously.
-  - 3:00 AM Night Amnesty silent task rollover to "Parking" list.
 - **Sprint 2 (Student & Creative Ecosystem):** School Outlook integration, Promo Discord digest, Ableton 45-min Sandbox timer & MP3 exit ritual, Google Drive "Boîte à vrac".
 - **Sprint 3 (Jarvis Cockpit & Analytics):** Fullstack Web Dashboard (Vue.js 3 + Spring Boot/Laravel API), contextual AI chat, 5-second Sport/Nutrition logger, Weekly CBT review agent.
 

@@ -10,23 +10,27 @@ flowchart TB
         CAL["📅 Agenda & Google Tasks"]:::user
     end
 
-    subgraph CLOUD ["☁️ Écosystème Google & Sources Externes"]
-        GMAIL["📧 Gmail & Outlook École"]:::google
-        GTASKS["✅ Google Tasks (File #jarvis)"]:::google
-        GDRIVE["📂 Google Drive & Sheets"]:::google
+    subgraph CLOUD ["☁️ Écosystème Google Workspace & Sources Externes"]
+        GMAIL["📧 Gmail (24h & Stage) & Outlook École"]:::google
+        GCAL["📅 Google Calendar (primary)"]:::google
+        GTASKS["✅ Google Tasks (@default & #jarvis)"]:::google
+        GDRIVE["📂 Google Drive, Docs & Sheets"]:::google
     end
 
     subgraph VPS ["🖥️ VPS OVH (CloudPanel + Docker + CI/CD)"]
-        N8N["⚙️ Orchestrateur n8n"]:::vps
-        GEMINI["🧠 API Gemini Flash"]:::vps
+        N8N["⚙️ Orchestrateur n8n (Workflows 01, 02, 03)"]:::vps
+        USERDATA["🗄️ Volume user_data (Trackers, Memory Rules & Archives 30j)"]:::vps
+        GEMINI["🧠 API Gemini 3.5 Flash Lite"]:::vps
         DASH["💻 Dashboard Jarvis (Vue.js + API)<br/>Phase 3"]:::future
     end
 
     VOICE -->|"Commandes '#jarvis ...'"| GTASKS
-    GTASKS <-->|"Polling & Tâches extraites"| N8N
-    GMAIL -->|"Agrégation & Filtrage"| N8N
-    CAL <-->|"Synchronisation"| N8N
+    GTASKS <-->|"Déduplication & Création de tâches"| N8N
+    GMAIL -->|"Agrégation 24h & Filtrage memory_rules"| N8N
+    GCAL -->|"Événements du jour"| N8N
+    CAL <-->|"Synchronisation"| GCAL
     GDRIVE <-->|"Logs & Second Cerveau"| N8N
+    N8N <-->|"Lecture / Écriture / Compression 30j"| USERDATA
     N8N <-->|"Extraction JSON & Synthèse"| GEMINI
-    N8N <-->|"Notifications & Webhooks"| CHAT
+    N8N <-->|"Briefing Matinal & Webhooks"| CHAT
     DASH <-->|"REST / Webhooks"| N8N

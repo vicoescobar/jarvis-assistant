@@ -1,0 +1,285 @@
+{
+  "id": "03-memory-compression",
+  "name": "03 - Long-Term Memory Compression (Monthly Log Archiver)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 3 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "b3a00003-0001-4000-8000-000000000001",
+      "name": "Monthly 03:00 Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "compress-memory",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b3a00003-0002-4000-8000-000000000002",
+      "name": "Webhook Compress Memory",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        440
+      ],
+      "webhookId": "jarvis-compress-memory-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst userDataDir = '/home/node/user_data';\nconst registryPath = path.join(userDataDir, 'trackers_registry.json');\nconst memoryPath = path.join(userDataDir, 'memory_rules.json');\n\nif (!fs.existsSync(userDataDir)) {\n  fs.mkdirSync(userDataDir, { recursive: true });\n}\n\nif (!fs.existsSync(registryPath)) {\n  fs.writeFileSync(registryPath, JSON.stringify({ trackers: {} }, null, 2), 'utf8');\n}\n\nif (!fs.existsSync(memoryPath)) {\n  fs.writeFileSync(memoryPath, JSON.stringify({ morning_rules: [], custom_scopes: {} }, null, 2), 'utf8');\n}\n\nconst now = new Date();\nconst nowIso = now.toISOString();\nconst todayIsoDate = nowIso.slice(0, 10);\nconst nowMs = now.getTime();\nconst dayMs = 24 * 60 * 60 * 1000;\nconst cutoff30DaysMs = nowMs - 30 * dayMs;\n\nconst inputPayload = $input.first()?.json?.body || $input.first()?.json || {};\nconst forceCompression = Boolean(inputPayload.force === true || inputPayload.force === 'true');\nconst minStaleThreshold = forceCompression ? 1 : 5;\n\n// 1. Purge expired volatile rules in memory_rules.json\nconst memoryRules = JSON.parse(fs.readFileSync(memoryPath, 'utf8'));\nlet purgedRulesCount = 0;\nif (memoryRules.custom_scopes && typeof memoryRules.custom_scopes === 'object') {\n  for (const [scopeName, rules] of Object.entries(memoryRules.custom_scopes)) {\n    if (Array.isArray(rules)) {\n      const filtered = rules.filter((r) => !r.expires_at || r.expires_at >= todayIsoDate);\n      const diff = rules.length - filtered.length;\n      if (diff > 0) {\n        memoryRules.custom_scopes[scopeName] = filtered;\n        purgedRulesCount += diff;\n      }\n    }\n  }\n}\nif (purgedRulesCount > 0) {\n  fs.writeFileSync(memoryPath, JSON.stringify(memoryRules, null, 2), 'utf8');\n}\n\n// 2. Scan trackers_registry.json and inspect data_<tracker_id>.json\nconst trackersRegistry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));\nconst trackers = trackersRegistry.trackers || {};\nconst candidateItems = [];\n\nconst activeCollectionKeywords = ['quote', 'devis', 'pending', 'attente', 'sent', 'envoyé', 'open', 'ouvert', 'active', 'actif', 'in_progress', 'en_cours'];\n\nfor (const [trackerId, tracker] of Object.entries(trackers)) {\n  const dataFilePath = path.join(userDataDir, `data_${trackerId}.json`);\n  if (!fs.existsSync(dataFilePath)) continue;\n\n  let records = [];\n  try {\n    records = JSON.parse(fs.readFileSync(dataFilePath, 'utf8'));\n  } catch (e) {\n    records = [];\n  }\n  if (!Array.isArray(records) || records.length === 0) continue;\n\n  const recentRecords = [];\n  const staleRecords = [];\n\n  for (const rec of records) {\n    const rawDateStr = rec.updated_at || rec.created_at || rec.date || '';\n    const recMs = Date.parse(rawDateStr);\n    const isOlderThan30Days = !Number.isNaN(recMs) && recMs < cutoff30DaysMs;\n\n    if (!isOlderThan30Days) {\n      recentRecords.push(rec);\n      continue;\n    }\n\n    // Never archive active/pending COLLECTION_TABLE records (e.g., open CRM quotes/leads)\n    if (tracker.type === 'COLLECTION_TABLE') {\n      const statusStr = String(rec.status || rec.statut || rec.state || '').toLowerCase().trim();\n      const isStillActiveOrPending = !statusStr || activeCollectionKeywords.some((kw) => statusStr.includes(kw));\n      if (isStillActiveOrPending) {\n        recentRecords.push(rec);\n        continue;\n      }\n    }\n\n    staleRecords.push(rec);\n  }\n\n  if (staleRecords.length >= minStaleThreshold) {\n    const sortedDates = staleRecords\n      .map((r) => String(r.created_at || r.updated_at || r.date || '').slice(0, 10))\n      .filter((d) => /^\\d{4}-\\d{2}-\\d{2}$/.test(d))\n      .sort();\n\n    const periodStart = sortedDates[0] || todayIsoDate;\n    const periodEnd = sortedDates[sortedDates.length - 1] || todayIsoDate;\n\n    candidateItems.push({\n      json: {\n        needs_compression: true,\n        tracker_id: trackerId,\n        display_name: tracker.display_name || trackerId,\n        tracker_type: tracker.type || 'ACTIVITY_LOG',\n        period_start: periodStart,\n        period_end: periodEnd,\n        stale_count: staleRecords.length,\n        stale_records: staleRecords,\n        recent_records: recentRecords,\n        purged_rules_count: purgedRulesCount,\n        timestamp: nowIso\n      }\n    });\n  }\n}\n\nif (candidateItems.length === 0) {\n  return [\n    {\n      json: {\n        needs_compression: false,\n        status: 'ok',\n        compressed_trackers: 0,\n        purged_rules_count: purgedRulesCount,\n        timestamp: nowIso\n      }\n    }\n  ];\n}\n\nreturn candidateItems;"
+      },
+      "id": "b3a00003-0003-4000-8000-000000000003",
+      "name": "Scan Stale Tracker Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-needs-compression",
+              "leftValue": "={{ $json.needs_compression }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b3a00003-0004-4000-8000-000000000004",
+      "name": "Needs Compression?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Synthétise ces ' + $json.stale_count + ' entrées historiques du tracker \"' + $json.display_name + '\" (' + $json.tracker_id + ') couvrant la période du ' + $json.period_start + ' au ' + $json.period_end + ' en un digest JSON strict.' }}",
+        "options": {
+          "maxIterations": 1,
+          "systemMessage": "=Tu es le module de compression mémoire à long terme de Jarvis (inspiré de `monitor_operative`).\nTon rôle est de compresser un tableau d'entrées historiques (`stale_records` > 30 jours) d'un tracker utilisateur en un digest mensuel ultra-compact pour préserver la fenêtre de contexte de Gemini.\n\n### FORMAT DE SORTIE OBLIGATOIRE (JSON STRICT UNIQUEMENT, SANS BALISES MARKDOWN)\nRéponds UNIQUEMENT avec un objet JSON valide respectant exactement ce schéma :\n{\n  \"period_start\": \"{{ $json.period_start }}\",\n  \"period_end\": \"{{ $json.period_end }}\",\n  \"record_count\": {{ $json.stale_count }},\n  \"highlights\": [\n    \"Fait ou métrique clé 1 (concis, factuel)\",\n    \"Fait ou métrique clé 2\",\n    \"Fait ou métrique clé 3 (maximum 3 éléments)\"\n  ],\n  \"summary\": \"Résumé compact en 2 phrases maximum synthétisant le volume, la régularité ou les éléments clôturés sans aucun jugement ni culpabilisation.\"\n}\n\n### ENTRÉES À COMPRESSER (`stale_records`)\n- Tracker : {{ $json.display_name }} (`{{ $json.tracker_id }}`, type `{{ $json.tracker_type }}`)\n- Données : {{ JSON.stringify($json.stale_records) }}"
+        }
+      },
+      "id": "b3a00003-0005-4000-8000-000000000005",
+      "name": "Summarize Stale Records",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1040,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "b3a00003-0006-4000-8000-000000000006",
+      "name": "Google Gemini Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        440
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GEMINI_CREDENTIAL_ID",
+          "name": "Google Gemini API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst userDataDir = '/home/node/user_data';\nconst llmOutputs = $input.all();\nconst sourceItems = $('Needs Compression?').all();\nconst nowIso = new Date().toISOString();\n\nconst compressedTrackers = [];\nlet purgedRulesCount = 0;\n\nfor (let i = 0; i < sourceItems.length; i++) {\n  const src = sourceItems[i].json;\n  purgedRulesCount = src.purged_rules_count || 0;\n  const rawOutput = String(llmOutputs[i]?.json?.output || '').trim();\n  const cleanedJsonStr = rawOutput\n    .replace(/^```(?:json)?\\s*/i, '')\n    .replace(/\\s*```$/i, '')\n    .trim();\n\n  let digest = {\n    period_start: src.period_start,\n    period_end: src.period_end,\n    record_count: src.stale_count,\n    highlights: [`${src.stale_count} entrées archivées automatiquement`],\n    summary: cleanedJsonStr || `Compression automatique de ${src.stale_count} entrées historiques pour ${src.display_name}.`\n  };\n\n  try {\n    const parsed = JSON.parse(cleanedJsonStr);\n    if (parsed && typeof parsed === 'object') {\n      digest = {\n        period_start: parsed.period_start || src.period_start,\n        period_end: parsed.period_end || src.period_end,\n        record_count: Number(parsed.record_count || src.stale_count),\n        highlights: Array.isArray(parsed.highlights) ? parsed.highlights.slice(0, 3) : digest.highlights,\n        summary: typeof parsed.summary === 'string' && parsed.summary.trim() ? parsed.summary.trim() : digest.summary\n      };\n    }\n  } catch (e) {\n    // Keep fallback digest\n  }\n\n  const archivePath = path.join(userDataDir, `archive_${src.tracker_id}.json`);\n  let existingArchives = [];\n  if (fs.existsSync(archivePath)) {\n    try {\n      existingArchives = JSON.parse(fs.readFileSync(archivePath, 'utf8'));\n      if (!Array.isArray(existingArchives)) existingArchives = [];\n    } catch (e) {\n      existingArchives = [];\n    }\n  }\n\n  const archiveEntry = {\n    ...digest,\n    tracker_id: src.tracker_id,\n    archived_at: nowIso\n  };\n  existingArchives.push(archiveEntry);\n  fs.writeFileSync(archivePath, JSON.stringify(existingArchives, null, 2), 'utf8');\n\n  const activeDataPath = path.join(userDataDir, `data_${src.tracker_id}.json`);\n  fs.writeFileSync(activeDataPath, JSON.stringify(src.recent_records || [], null, 2), 'utf8');\n\n  compressedTrackers.push({\n    tracker_id: src.tracker_id,\n    archived_count: src.stale_count,\n    remaining_active_count: (src.recent_records || []).length,\n    digest: archiveEntry\n  });\n}\n\nreturn [\n  {\n    json: {\n      status: 'ok',\n      compressed_trackers: compressedTrackers,\n      purged_rules_count: purgedRulesCount,\n      timestamp: nowIso\n    }\n  }\n];"
+      },
+      "id": "b3a00003-0007-4000-8000-000000000007",
+      "name": "Write Archive & Trim Active File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const first = $input.first()?.json || {};\nreturn [\n  {\n    json: {\n      status: 'ok',\n      compressed_trackers: 0,\n      purged_rules_count: first.purged_rules_count || 0,\n      timestamp: first.timestamp || new Date().toISOString()\n    }\n  }\n];"
+      },
+      "id": "b3a00003-0008-4000-8000-000000000008",
+      "name": "Format No-Op Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "b3a00003-0009-4000-8000-000000000009",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1640,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Monthly 03:00 Trigger": {
+      "main": [
+        [
+          {
+            "node": "Scan Stale Tracker Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Compress Memory": {
+      "main": [
+        [
+          {
+            "node": "Scan Stale Tracker Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan Stale Tracker Records": {
+      "main": [
+        [
+          {
+            "node": "Needs Compression?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Compression?": {
+      "main": [
+        [
+          {
+            "node": "Summarize Stale Records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format No-Op Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Stale Records",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Stale Records": {
+      "main": [
+        [
+          {
+            "node": "Write Archive & Trim Active File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Archive & Trim Active File": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format No-Op Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "versionId": "sprint1-step1-3-memory-compression",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "name": "sprint-1"
+    },
+    {
+      "name": "memory-compression"
+    }
+  ]
+}

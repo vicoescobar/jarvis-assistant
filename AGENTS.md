@@ -33,9 +33,9 @@
    - **School Microsoft 365 / Outlook:** Integrated via IMAP (`outlook.office365.com:993`), OAuth2, or automatic forwarding (`+ecole` alias) into the unified morning briefing.
    - **Major/Promo Discord Server (No Admin Rights):** Daily digest of announcements/deadlines using `DiscordChatExporter` CLI (run locally or via residential proxy -> pushed to n8n webhook to bypass Cloudflare datacenter IP blocks on OVH) or Discord Announcement Channel following.
 3. **Clinical ADHD Guardrails (Must be enforced in all prompts & UI):**
-   - **Point of Performance (Barkley):** Push actionable notifications (max 4-5 well-spaced sections) instead of waiting for the user to open a dashboard.
-   - **Implementation Intentions (Gollwitzer):** Format daily priorities strictly as *"Si [Déclencheur concret], alors [Micro-action physique de < 2 min]"*.
-   - **Zero Shame / No Night Amnesty (Sirois & Pychyl):** No red badges, broken streaks, or guilt-tripping language. Unfinished tasks are NEVER automatically moved or deleted; they remain untouched in the user's primary Google Tasks list (`@default`).
+   - **Point of Performance (Barkley):** Push actionable notifications (5 well-spaced sections: `Agenda`, `Mails importants`, `Tâches en cours`, `Trackers`, `Suggestion`) instead of waiting for the user to open a dashboard.
+   - **Direct Executive Tone (No Patronizing Copy):** ADHD accommodation lives in the architecture (noise filtering, prioritization, low friction, generic prompt-driven `tracker_mutations`), never in coddling or infantilizing copy. Strictly ban phrases like *"zéro pression"*, *"au calme"*, *"sans aucune culpabilité"*, *"si l'énergie n'y est pas"*, *"profite de cette liberté"*, and do NOT include *"Plan Si/Alors"* in the morning briefing.
+   - **Zero Shame / No Night Amnesty & Full Task Visibility (Sirois & Pychyl):** No red badges or broken streaks. Unfinished tasks are NEVER automatically moved or deleted; all active tasks in `@default` (including undated ones) are surfaced in the morning briefing.
    - **Ableton Live Sandbox Protocol (Peak-End Rule):** Prevent post-hyperfocus perfectionism aversion. Frame music sessions strictly as 45-minute timed sandboxes ("Sound Design" OR "Arrangement"). At 45 minutes, n8n pings the user to export a 15-second MP3 snippet to close on a tangible win.
 
 ---
@@ -49,6 +49,7 @@
 - `.agents/skills/sprint1-dynamic-trackers-engine/SKILL.md` : Schema-less Dynamic Trackers & Context Memory Engine (Step 1.1)
 - `.agents/skills/sprint1-morning-briefing-discord/SKILL.md` : Discord Outbound Channel & Adaptive Morning Briefing (Step 1.2)
 - `.agents/skills/sprint1-google-workspace-memory/SKILL.md` : Google Workspace Sync & Long-Term Memory Compression (Step 1.3)
+- `.agents/skills/sprint1-briefing-polish/SKILL.md` : Prompt-Driven Morning Mutations (`tracker_mutations`), Direct Executive Tone & Full Google Tasks Visibility (Step 1.3 Polish)
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram

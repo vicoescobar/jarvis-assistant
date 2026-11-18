@@ -51,6 +51,7 @@
 - `.agents/skills/sprint1-google-workspace-memory/SKILL.md` : Google Workspace Sync & Long-Term Memory Compression (Step 1.3)
 - `.agents/skills/sprint1-briefing-polish/SKILL.md` : Prompt-Driven Morning Mutations (`tracker_mutations`), Direct Executive Tone & Full Google Tasks Visibility (Step 1.3 Polish)
 - `.agents/skills/sprint1-voice-google-tasks/SKILL.md` : Native Google Tasks Voice Tools (`google_tasks_list`, `google_tasks_create`, `google_tasks_complete`, `google_tasks_delete`) in `01-voice-agent-core.json`
+- `.agents/skills/sprint1-voice-full-workspace/SKILL.md` : Full Google Workspace Native Voice Tools (Calendar, Gmail, Drive, Docs, Sheets + Tasks) in `01-voice-agent-core.json`
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram

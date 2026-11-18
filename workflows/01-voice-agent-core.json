@@ -1,6 +1,6 @@
 {
   "id": "01-voice-agent-core",
-  "name": "01 - Voice Agent Core (Dynamic Trackers & Memory Engine)",
+  "name": "01 - Voice Agent Core (Dynamic Trackers & Google Workspace Engine)",
   "nodes": [
     {
       "parameters": {
@@ -37,8 +37,8 @@
         "promptType": "define",
         "text": "={{ $json.voice_command }}",
         "options": {
-          "maxIterations": 6,
-          "systemMessage": "=Tu es Jarvis, Chief-of-Staff et orchestrateur exécutif piloté par la voix.\nDate actuelle : {{ $json.current_date }} (Demain : {{ $json.tomorrow_date }} | Timestamp : {{ $json.current_timestamp }}).\n\n### TON EXÉCUTIF DIRECT & GARDE-FOUS (STRICTEMENT OBLIGATOIRES)\n1. **Ton Chief-of-Staff direct et factuel** : Tes réponses doivent faire MAXIMUM 4 lignes, nettes, précises et orientées action (prêtes pour le Text-to-Speech ou Discord). L'adaptation TDAH réside dans l'architecture et la faible friction, JAMAIS dans un ton infantilisant ou minimisant. **INTERDICTION STRICTE** d'utiliser des formules comme \"zéro pression\", \"au calme\", \"sans aucune culpabilité\", \"si l'énergie n'y est pas\", \"profite de cette liberté\" ou d'imposer une phrase \"Si [X], alors [Y]\".\n2. **Comportements Matinaux Récurrents (`morning_rules`)** : Lorsque l'utilisateur dicte une règle comportementale récurrente pour le matin (ex: \"avance mon cycle chaque matin\", \"inclus mon cycle dans le briefing du matin\", \"rappelle-moi X le matin\"), tu dois OBLIGATOIREMENT enregistrer cette consigne dans `morning_rules` via `update_memory_rule` (`scope: 'morning_rules'`) en plus de créer ou mettre à jour le schéma du tracker concerné.\n3. **Gestion d'une Séance Sautée / Reportée Aujourd'hui** : Lorsque l'utilisateur indique qu'il n'a pas fait sa séance aujourd'hui ou qu'il la reporte (ex: \"aujourd'hui je n'y suis pas allé\", \"on garde la séance pour demain\"), tu dois exécuter DEUX actions :\n   - Appeler `mutate_tracker_record` avec `operation: 'skip_or_shift_cycle'` et `step_delta: 0` (pour maintenir l'étape actuelle intacte).\n   - Appeler `update_memory_rule` pour ajouter une règle volatile dans `custom_scopes.cycle_overrides` (`volatile: true`, `expires_at: '{{ $json.tomorrow_date }}'`) indiquant que la séance a été reportée et que le briefing matinal du `{{ $json.tomorrow_date }}` ne doit PAS avancer le cycle (`advance_cycle` interdit).\n4. **Règle Sandbox Créative** : Toute session musicale/créative Ableton Live est cadrée comme un sandbox chronométré de 45 minutes (Sound Design OU Arrangement) se terminant par un export MP3 de 15 secondes.\n5. **Règle Google Tasks (`@default`)** : Pour supprimer, cocher ou vérifier une tâche externe, appelle OBLIGATOIREMENT `google_tasks_list` en premier pour récupérer son `taskId` exact, puis appelle `google_tasks_delete` ou `google_tasks_complete` avec cet ID. Ne devine jamais un `taskId`.\n\n### NÉGOCIATION DU BRIEFING MATINAL\n- Le briefing matinal du jour est stocké dans `custom_scopes.today_briefing_state`. Si l'utilisateur répond pour accepter, modifier, remplacer ou reporter l'activité proposée ce matin :\n  - Mets à jour `today_briefing_state` via `update_memory_rule` (`scope: 'today_briefing_state'`, `volatile: true`, `expires_at: '{{ $json.current_date }}'`) et/ou applique la mutation de tracker correspondante.\n  - Confirme immédiatement le plan ajusté en 2 lignes directes et factuelles.\n\n### CONTEXTE DYNAMIQUE CHARGÉ DEPUIS /home/node/user_data/\n- Registre des Trackers (`trackers_registry.json`) :\n{{ JSON.stringify($json.trackers_registry) }}\n\n- Règles Mémoire & Scopes (`memory_rules.json`) :\n{{ JSON.stringify($json.memory_rules) }}\n\n### UTILISATION DES 4 META-TOOLS (TRACKERS & MÉMOIRE)\nTu disposes de 4 outils génériques recevant un argument JSON stringifié (`query`) :\n1. `create_or_update_tracker_schema` : Pour créer ou modifier la structure d'un tracker (`CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, `ACTIVITY_LOG`).\n2. `mutate_tracker_record` : Pour ajouter/modifier une entrée dans `data_<tracker_id>.json` ou avancer/maintenir (`advance_cycle`, `skip_or_shift_cycle`, `set_cycle_index`) un tracker `CYCLE_STATE_MACHINE`.\n3. `query_tracker_records` : Pour lire et filtrer les entrées d'un tracker (par statut, ancienneté `older_than_days` ou récence `recent_days`).\n4. `update_memory_rule` : Pour ajouter, modifier ou supprimer une règle dans `morning_rules` ou dans un scope dynamique `custom_scopes.<dynamic_scope_name>` (avec support `volatile` et `expires_at`).\n\n### UTILISATION DES 4 OUTILS GOOGLE TASKS (`@default`)\n1. `google_tasks_list` : Liste les tâches actives dans Google Tasks (`@default`) avec leurs IDs (`id`) et titres (`title`). Toujours appeler cet outil AVANT `google_tasks_complete` ou `google_tasks_delete`.\n2. `google_tasks_create` : Crée une nouvelle tâche dans Google Tasks (`@default`) avec `title` et `notes`.\n3. `google_tasks_complete` : Marque une tâche comme terminée (`status: completed`) dans Google Tasks (`@default`) à partir de son `taskId` exact.\n4. `google_tasks_delete` : Supprime définitivement une tâche dans Google Tasks (`@default`) à partir de son `taskId` exact."
+          "maxIterations": 8,
+          "systemMessage": "=Tu es Jarvis, Chief-of-Staff et orchestrateur exécutif piloté par la voix.\nDate actuelle : {{ $json.current_date }} (Demain : {{ $json.tomorrow_date }} | Timestamp : {{ $json.current_timestamp }}).\n\n### TON EXÉCUTIF DIRECT & GARDE-FOUS (STRICTEMENT OBLIGATOIRES)\n1. **Ton Chief-of-Staff direct et factuel** : Tes réponses doivent faire MAXIMUM 4 lignes, nettes, précises et orientées action (prêtes pour le Text-to-Speech ou Discord). L'adaptation TDAH réside dans l'architecture et la faible friction, JAMAIS dans un ton infantilisant ou minimisant. **INTERDICTION STRICTE** d'utiliser des formules comme \"zéro pression\", \"au calme\", \"sans aucune culpabilité\", \"si l'énergie n'y est pas\", \"profite de cette liberté\" ou d'imposer une phrase \"Si [X], alors [Y]\".\n2. **Comportements Matinaux Récurrents (`morning_rules`)** : Lorsque l'utilisateur dicte une règle comportementale récurrente pour le matin (ex: \"avance mon cycle chaque matin\", \"inclus mon cycle dans le briefing du matin\", \"rappelle-moi X le matin\"), tu dois OBLIGATOIREMENT enregistrer cette consigne dans `morning_rules` via `update_memory_rule` (`scope: 'morning_rules'`) en plus de créer ou mettre à jour le schéma du tracker concerné.\n3. **Gestion d'une Séance Sautée / Reportée Aujourd'hui** : Lorsque l'utilisateur indique qu'il n'a pas fait sa séance aujourd'hui ou qu'il la reporte (ex: \"aujourd'hui je n'y suis pas allé\", \"on garde la séance pour demain\"), tu dois exécuter DEUX actions :\n   - Appeler `mutate_tracker_record` avec `operation: 'skip_or_shift_cycle'` et `step_delta: 0` (pour maintenir l'étape actuelle intacte).\n   - Appeler `update_memory_rule` pour ajouter une règle volatile dans `custom_scopes.cycle_overrides` (`volatile: true`, `expires_at: '{{ $json.tomorrow_date }}'`) indiquant que la séance a été reportée et que le briefing matinal du `{{ $json.tomorrow_date }}` ne doit PAS avancer le cycle (`advance_cycle` interdit).\n4. **Règle Sandbox Créative** : Toute session musicale/créative Ableton Live est cadrée comme un sandbox chronométré de 45 minutes (Sound Design OU Arrangement) se terminant par un export MP3 de 15 secondes.\n5. **Résolution d'ID obligatoire avant action Google Workspace** : Ne devine JAMAIS un `taskId`, `eventId`, `messageId` ou `documentId`. Appelle OBLIGATOIREMENT `google_tasks_list`, `google_calendar_list`, `gmail_search` ou `google_drive_search` en premier pour obtenir l'ID exact avant toute lecture, complétion, modification ou suppression.\n6. **Sécurité Gmail** : Utilise `gmail_create_draft` pour préparer un email ou une réponse et informe l'utilisateur que le brouillon est prêt dans Gmail (pas d'envoi automatique).\n7. **Séparation Trackers locaux vs Google Workspace** : Utilise les 4 méta-outils locaux pour les trackers dynamiques (`cycle_musculation`, CRM, règles mémoire) et les outils Google Workspace dès que l'utilisateur mentionne explicitement son agenda, ses mails, ses tâches, son Drive, un Google Doc ou un Google Sheet.\n\n### NÉGOCIATION DU BRIEFING MATINAL\n- Le briefing matinal du jour est stocké dans `custom_scopes.today_briefing_state`. Si l'utilisateur répond pour accepter, modifier, remplacer ou reporter l'activité proposée ce matin :\n  - Mets à jour `today_briefing_state` via `update_memory_rule` (`scope: 'today_briefing_state'`, `volatile: true`, `expires_at: '{{ $json.current_date }}'`) et/ou applique la mutation de tracker correspondante.\n  - Confirme immédiatement le plan ajusté en 2 lignes directes et factuelles.\n\n### CONTEXTE DYNAMIQUE CHARGÉ DEPUIS /home/node/user_data/\n- Registre des Trackers (`trackers_registry.json`) :\n{{ JSON.stringify($json.trackers_registry) }}\n\n- Règles Mémoire & Scopes (`memory_rules.json`) :\n{{ JSON.stringify($json.memory_rules) }}\n\n### 1. LES 4 META-TOOLS LOCAUX (TRACKERS & MÉMOIRE)\n- `create_or_update_tracker_schema` : Crée ou modifie un tracker (`CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, `ACTIVITY_LOG`).\n- `mutate_tracker_record` : Ajoute/modifie une entrée dans `data_<tracker_id>.json` ou avance/maintient (`advance_cycle`, `skip_or_shift_cycle`, `set_cycle_index`) un tracker `CYCLE_STATE_MACHINE`.\n- `query_tracker_records` : Lit et filtre les entrées d'un tracker.\n- `update_memory_rule` : Ajoute, modifie ou supprime une règle dans `morning_rules` ou `custom_scopes.<dynamic_scope_name>`.\n\n### 2. OUTILS GOOGLE WORKSPACE NATIFS\n- **Google Tasks (`@default`)** : `google_tasks_list`, `google_tasks_create`, `google_tasks_complete` (`taskId` via `google_tasks_list`), `google_tasks_delete` (`taskId` via `google_tasks_list`).\n- **Google Calendar (`primary`)** : `google_calendar_list` (`timeMin`, `timeMax` ISO-8601), `google_calendar_create` (`start`, `end`, `summary`, `description`), `google_calendar_delete` (`eventId` via `google_calendar_list`).\n- **Gmail** : `gmail_search` (`query`), `gmail_get` (`messageId` via `gmail_search`), `gmail_create_draft` (`to`, `subject`, `message`).\n- **Google Drive** : `google_drive_search` (`query` -> renvoie les IDs de Docs/Sheets/fichiers), `google_drive_create_file` (`name`, `content`).\n- **Google Docs** : `google_docs_get` (`documentId` via `google_drive_search`), `google_docs_create` (`title`), `google_docs_append` (`documentId`, `text`).\n- **Google Sheets** : `google_sheets_read` (`documentId` via `google_drive_search`, `sheetName`), `google_sheets_append` (`documentId`, `sheetName`)."
         }
       },
       "id": "b1a00001-0003-4000-8000-000000000003",
@@ -62,7 +62,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        520,
+        480,
         580
       ],
       "credentials": {
@@ -240,6 +240,360 @@
     },
     {
       "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Liste les événements Google Calendar (calendrier primary) entre timeMin et timeMax (format ISO-8601 avec fuseau, ex: 2026-11-18T00:00:00+01:00). Appeler avant toute suppression pour obtenir l'eventId exact.",
+        "resource": "event",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "returnAll": false,
+        "limit": 25,
+        "options": {
+          "singleEvents": true,
+          "timeMin": "={{ $fromAI('timeMin', 'Date/heure ISO début', 'string') }}",
+          "timeMax": "={{ $fromAI('timeMax', 'Date/heure ISO fin', 'string') }}"
+        }
+      },
+      "id": "b1a00001-0015-4000-8000-000000000015",
+      "name": "google_calendar_list",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.2,
+      "position": [
+        680,
+        940
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GCAL_CREDENTIAL_ID",
+          "name": "Jarvis Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crée un nouvel événement dans Google Calendar (primary).",
+        "resource": "event",
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "start": "={{ $fromAI('start', 'Date/heure ISO début', 'string') }}",
+        "end": "={{ $fromAI('end', 'Date/heure ISO fin', 'string') }}",
+        "additionalFields": {
+          "summary": "={{ $fromAI('summary', 'Titre de l événement', 'string') }}",
+          "description": "={{ $fromAI('description', 'Description optionnelle', 'string') }}"
+        }
+      },
+      "id": "b1a00001-0016-4000-8000-000000000016",
+      "name": "google_calendar_create",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.2,
+      "position": [
+        840,
+        940
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GCAL_CREDENTIAL_ID",
+          "name": "Jarvis Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Supprime un événement Google Calendar par son eventId exact obtenu via google_calendar_list.",
+        "resource": "event",
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "eventId": "={{ $fromAI('eventId', 'ID exact de l événement', 'string') }}"
+      },
+      "id": "b1a00001-0017-4000-8000-000000000017",
+      "name": "google_calendar_delete",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.2,
+      "position": [
+        1000,
+        940
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GCAL_CREDENTIAL_ID",
+          "name": "Jarvis Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Recherche des emails dans Gmail avec une requête de filtrage (ex: 'from:revolut', 'stage OR alternance', 'newer_than:7d'). Renvoie les IDs, sujets et extraits.",
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 10,
+        "filters": {
+          "q": "={{ $fromAI('query', 'Requête de recherche Gmail', 'string') }}"
+        }
+      },
+      "id": "b1a00001-0018-4000-8000-000000000018",
+      "name": "gmail_search",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        1160,
+        940
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Jarvis Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Lit le contenu complet d'un email Gmail à partir de son messageId obtenu via gmail_search.",
+        "resource": "message",
+        "operation": "get",
+        "messageId": "={{ $fromAI('messageId', 'ID exact du message Gmail', 'string') }}"
+      },
+      "id": "b1a00001-0019-4000-8000-000000000019",
+      "name": "gmail_get",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        1320,
+        940
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Jarvis Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crée un brouillon de réponse ou de nouvel email dans Gmail sans l'envoyer automatiquement.",
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $fromAI('subject', 'Objet du mail', 'string') }}",
+        "message": "={{ $fromAI('message', 'Corps du mail en texte clair', 'string') }}",
+        "options": {
+          "sendTo": "={{ $fromAI('to', 'Adresse email du destinataire', 'string') }}"
+        }
+      },
+      "id": "b1a00001-0020-4000-8000-000000000020",
+      "name": "gmail_create_draft",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        1480,
+        940
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Jarvis Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Recherche des fichiers (Google Docs, Sheets, PDF, dossiers) dans Google Drive par nom ou mot-clé. Toujours appeler en premier pour récupérer l'ID exact d'un Doc ou d'un Sheet.",
+        "resource": "fileFolder",
+        "operation": "search",
+        "returnAll": false,
+        "limit": 15,
+        "queryString": "={{ $fromAI('query', 'Nom ou mot-clé du fichier à chercher', 'string') }}"
+      },
+      "id": "b1a00001-0021-4000-8000-000000000021",
+      "name": "google_drive_search",
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [
+        680,
+        1120
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GDRIVE_CREDENTIAL_ID",
+          "name": "Jarvis Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crée un fichier texte/Markdown dans Google Drive (utile pour la Boîte à vrac ou des notes rapides).",
+        "resource": "file",
+        "operation": "createFromText",
+        "name": "={{ $fromAI('name', 'Nom du fichier ex: note.md', 'string') }}",
+        "content": "={{ $fromAI('content', 'Contenu texte du fichier', 'string') }}"
+      },
+      "id": "b1a00001-0022-4000-8000-000000000022",
+      "name": "google_drive_create_file",
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [
+        840,
+        1120
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GDRIVE_CREDENTIAL_ID",
+          "name": "Jarvis Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Lit le contenu d'un Google Doc à partir de son documentId (obtenu via google_drive_search).",
+        "resource": "document",
+        "operation": "get",
+        "documentURL": "={{ $fromAI('documentId', 'ID exact du Google Doc', 'string') }}"
+      },
+      "id": "b1a00001-0023-4000-8000-000000000023",
+      "name": "google_docs_get",
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        1120
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "GDOCS_CREDENTIAL_ID",
+          "name": "Jarvis Docs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crée un nouveau Google Doc vide avec un titre.",
+        "resource": "document",
+        "operation": "create",
+        "title": "={{ $fromAI('title', 'Titre du nouveau Google Doc', 'string') }}"
+      },
+      "id": "b1a00001-0024-4000-8000-000000000024",
+      "name": "google_docs_create",
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        1120
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "GDOCS_CREDENTIAL_ID",
+          "name": "Jarvis Docs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Ajoute du texte à la fin d'un Google Doc existant (nécessite le documentId obtenu via google_drive_search).",
+        "resource": "document",
+        "operation": "update",
+        "documentURL": "={{ $fromAI('documentId', 'ID exact du Google Doc', 'string') }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "locationChoice": "location",
+              "insertSegment": "body",
+              "text": "={{ $fromAI('text', 'Texte à insérer dans le document', 'string') }}"
+            }
+          ]
+        }
+      },
+      "id": "b1a00001-0025-4000-8000-000000000025",
+      "name": "google_docs_append",
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        1120
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "GDOCS_CREDENTIAL_ID",
+          "name": "Jarvis Docs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Lit les lignes d'un onglet Google Sheets (nécessite documentId obtenu via google_drive_search et sheetName).",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": "={{ $fromAI('documentId', 'ID exact du Google Sheet', 'string') }}",
+        "sheetName": "={{ $fromAI('sheetName', 'Nom exact de l onglet ex: Feuille 1', 'string') }}"
+      },
+      "id": "b1a00001-0026-4000-8000-000000000026",
+      "name": "google_sheets_read",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        1480,
+        1120
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Jarvis Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Ajoute une nouvelle ligne à un Google Sheet existant (nécessite documentId et sheetName).",
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": "={{ $fromAI('documentId', 'ID exact du Google Sheet', 'string') }}",
+        "sheetName": "={{ $fromAI('sheetName', 'Nom exact de l onglet', 'string') }}",
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        }
+      },
+      "id": "b1a00001-0027-4000-8000-000000000027",
+      "name": "google_sheets_append",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        1640,
+        1120
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Jarvis Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
         "jsCode": "const https = require('https');\nconst { URL } = require('url');\n\nconst agentOutput = $input.first().json.output || '';\nconst contextData = $('Load Runtime Context').first().json || {};\nconst notifyDiscord = contextData.notify_discord !== false;\nconst webhookUrl = String(typeof $env !== 'undefined' && $env.DISCORD_BRIEFING_WEBHOOK_URL ? $env.DISCORD_BRIEFING_WEBHOOK_URL : '').trim();\n\nlet discordSent = false;\nlet discordWarning = null;\n\nfunction postDiscordWebhook(targetUrl, payloadObj) {\n  return new Promise((resolve, reject) => {\n    const parsed = new URL(targetUrl);\n    const bodyStr = JSON.stringify(payloadObj);\n    const req = https.request(\n      {\n        hostname: parsed.hostname,\n        port: parsed.port || 443,\n        path: parsed.pathname + parsed.search,\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'Content-Length': Buffer.byteLength(bodyStr)\n        }\n      },\n      (res) => {\n        let resBody = '';\n        res.on('data', (chunk) => { resBody += chunk; });\n        res.on('end', () => {\n          if (res.statusCode >= 200 && res.statusCode < 300) {\n            resolve(true);\n          } else {\n            reject(new Error(`Discord HTTP ${res.statusCode}: ${resBody}`));\n          }\n        });\n      }\n    );\n    req.on('error', reject);\n    req.write(bodyStr);\n    req.end();\n  });\n}\n\nif (notifyDiscord && webhookUrl && webhookUrl.startsWith('http') && !webhookUrl.includes('/xxx/yyy')) {\n  try {\n    await postDiscordWebhook(webhookUrl, {\n      username: 'Jarvis Executive Voice',\n      content: `🎙️ **Commande vocale traitée**\\n> ${contextData.voice_command || '(commande)'}\\n\\n${agentOutput}`\n    });\n    discordSent = true;\n  } catch (err) {\n    discordWarning = err.message;\n  }\n} else if (!webhookUrl || webhookUrl.includes('/xxx/yyy')) {\n  discordWarning = 'DISCORD_BRIEFING_WEBHOOK_URL not configured or placeholder';\n}\n\nreturn [\n  {\n    json: {\n      status: 'ok',\n      reply: agentOutput,\n      discord_sent: discordSent,\n      ...(discordWarning ? { discord_warning: discordWarning } : {}),\n      timestamp: new Date().toISOString()\n    }\n  }\n];"
       },
       "id": "b1a00001-0010-4000-8000-000000000010",
@@ -389,6 +743,149 @@
         ]
       ]
     },
+    "google_calendar_list": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_calendar_create": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_calendar_delete": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gmail_search": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gmail_get": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gmail_create_draft": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_drive_search": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_drive_create_file": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_docs_get": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_docs_create": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_docs_append": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_sheets_read": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_sheets_append": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Jarvis Voice AI Agent": {
       "main": [
         [
@@ -416,7 +913,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "sprint1-step1-3-voice-google-tasks",
+  "versionId": "sprint1-step1-3-voice-full-workspace",
   "meta": {
     "templateCredsSetupCompleted": false
   },
@@ -428,7 +925,7 @@
       "name": "meta-tools"
     },
     {
-      "name": "google-tasks"
+      "name": "google-workspace"
     }
   ]
 }

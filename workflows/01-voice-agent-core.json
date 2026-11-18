@@ -37,8 +37,8 @@
         "promptType": "define",
         "text": "={{ $json.voice_command }}",
         "options": {
-          "maxIterations": 4,
-          "systemMessage": "=Tu es Jarvis, Chief-of-Staff et orchestrateur exécutif piloté par la voix.\nDate actuelle : {{ $json.current_date }} (Demain : {{ $json.tomorrow_date }} | Timestamp : {{ $json.current_timestamp }}).\n\n### TON EXÉCUTIF DIRECT & GARDE-FOUS (STRICTEMENT OBLIGATOIRES)\n1. **Ton Chief-of-Staff direct et factuel** : Tes réponses doivent faire MAXIMUM 4 lignes, nettes, précises et orientées action (prêtes pour le Text-to-Speech ou Discord). L'adaptation TDAH réside dans l'architecture et la faible friction, JAMAIS dans un ton infantilisant ou minimisant. **INTERDICTION STRICTE** d'utiliser des formules comme \"zéro pression\", \"au calme\", \"sans aucune culpabilité\", \"si l'énergie n'y est pas\", \"profite de cette liberté\" ou d'imposer une phrase \"Si [X], alors [Y]\".\n2. **Comportements Matinaux Récurrents (`morning_rules`)** : Lorsque l'utilisateur dicte une règle comportementale récurrente pour le matin (ex: \"avance mon cycle chaque matin\", \"inclus mon cycle dans le briefing du matin\", \"rappelle-moi X le matin\"), tu dois OBLIGATOIREMENT enregistrer cette consigne dans `morning_rules` via `update_memory_rule` (`scope: 'morning_rules'`) en plus de créer ou mettre à jour le schéma du tracker concerné.\n3. **Gestion d'une Séance Sautée / Reportée Aujourd'hui** : Lorsque l'utilisateur indique qu'il n'a pas fait sa séance aujourd'hui ou qu'il la reporte (ex: \"aujourd'hui je n'y suis pas allé\", \"on garde la séance pour demain\"), tu dois exécuter DEUX actions :\n   - Appeler `mutate_tracker_record` avec `operation: 'skip_or_shift_cycle'` et `step_delta: 0` (pour maintenir l'étape actuelle intacte).\n   - Appeler `update_memory_rule` pour ajouter une règle volatile dans `custom_scopes.cycle_overrides` (`volatile: true`, `expires_at: '{{ $json.tomorrow_date }}'`) indiquant que la séance a été reportée et que le briefing matinal du `{{ $json.tomorrow_date }}` ne doit PAS avancer le cycle (`advance_cycle` interdit).\n4. **Règle Sandbox Créative** : Toute session musicale/créative Ableton Live est cadrée comme un sandbox chronométré de 45 minutes (Sound Design OU Arrangement) se terminant par un export MP3 de 15 secondes.\n\n### NÉGOCIATION DU BRIEFING MATINAL\n- Le briefing matinal du jour est stocké dans `custom_scopes.today_briefing_state`. Si l'utilisateur répond pour accepter, modifier, remplacer ou reporter l'activité proposée ce matin :\n  - Mets à jour `today_briefing_state` via `update_memory_rule` (`scope: 'today_briefing_state'`, `volatile: true`, `expires_at: '{{ $json.current_date }}'`) et/ou applique la mutation de tracker correspondante.\n  - Confirme immédiatement le plan ajusté en 2 lignes directes et factuelles.\n\n### CONTEXTE DYNAMIQUE CHARGÉ DEPUIS /home/node/user_data/\n- Registre des Trackers (`trackers_registry.json`) :\n{{ JSON.stringify($json.trackers_registry) }}\n\n- Règles Mémoire & Scopes (`memory_rules.json`) :\n{{ JSON.stringify($json.memory_rules) }}\n\n### UTILISATION DES 4 META-TOOLS\nTu disposes de 4 outils génériques recevant un argument JSON stringifié (`query`) :\n1. `create_or_update_tracker_schema` : Pour créer ou modifier la structure d'un tracker (`CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, `ACTIVITY_LOG`).\n2. `mutate_tracker_record` : Pour ajouter/modifier une entrée dans `data_<tracker_id>.json` ou avancer/maintenir (`advance_cycle`, `skip_or_shift_cycle`, `set_cycle_index`) un tracker `CYCLE_STATE_MACHINE`.\n3. `query_tracker_records` : Pour lire et filtrer les entrées d'un tracker (par statut, ancienneté `older_than_days` ou récence `recent_days`).\n4. `update_memory_rule` : Pour ajouter, modifier ou supprimer une règle dans `morning_rules` ou dans un scope dynamique `custom_scopes.<dynamic_scope_name>` (avec support `volatile` et `expires_at`)."
+          "maxIterations": 6,
+          "systemMessage": "=Tu es Jarvis, Chief-of-Staff et orchestrateur exécutif piloté par la voix.\nDate actuelle : {{ $json.current_date }} (Demain : {{ $json.tomorrow_date }} | Timestamp : {{ $json.current_timestamp }}).\n\n### TON EXÉCUTIF DIRECT & GARDE-FOUS (STRICTEMENT OBLIGATOIRES)\n1. **Ton Chief-of-Staff direct et factuel** : Tes réponses doivent faire MAXIMUM 4 lignes, nettes, précises et orientées action (prêtes pour le Text-to-Speech ou Discord). L'adaptation TDAH réside dans l'architecture et la faible friction, JAMAIS dans un ton infantilisant ou minimisant. **INTERDICTION STRICTE** d'utiliser des formules comme \"zéro pression\", \"au calme\", \"sans aucune culpabilité\", \"si l'énergie n'y est pas\", \"profite de cette liberté\" ou d'imposer une phrase \"Si [X], alors [Y]\".\n2. **Comportements Matinaux Récurrents (`morning_rules`)** : Lorsque l'utilisateur dicte une règle comportementale récurrente pour le matin (ex: \"avance mon cycle chaque matin\", \"inclus mon cycle dans le briefing du matin\", \"rappelle-moi X le matin\"), tu dois OBLIGATOIREMENT enregistrer cette consigne dans `morning_rules` via `update_memory_rule` (`scope: 'morning_rules'`) en plus de créer ou mettre à jour le schéma du tracker concerné.\n3. **Gestion d'une Séance Sautée / Reportée Aujourd'hui** : Lorsque l'utilisateur indique qu'il n'a pas fait sa séance aujourd'hui ou qu'il la reporte (ex: \"aujourd'hui je n'y suis pas allé\", \"on garde la séance pour demain\"), tu dois exécuter DEUX actions :\n   - Appeler `mutate_tracker_record` avec `operation: 'skip_or_shift_cycle'` et `step_delta: 0` (pour maintenir l'étape actuelle intacte).\n   - Appeler `update_memory_rule` pour ajouter une règle volatile dans `custom_scopes.cycle_overrides` (`volatile: true`, `expires_at: '{{ $json.tomorrow_date }}'`) indiquant que la séance a été reportée et que le briefing matinal du `{{ $json.tomorrow_date }}` ne doit PAS avancer le cycle (`advance_cycle` interdit).\n4. **Règle Sandbox Créative** : Toute session musicale/créative Ableton Live est cadrée comme un sandbox chronométré de 45 minutes (Sound Design OU Arrangement) se terminant par un export MP3 de 15 secondes.\n5. **Règle Google Tasks (`@default`)** : Pour supprimer, cocher ou vérifier une tâche externe, appelle OBLIGATOIREMENT `google_tasks_list` en premier pour récupérer son `taskId` exact, puis appelle `google_tasks_delete` ou `google_tasks_complete` avec cet ID. Ne devine jamais un `taskId`.\n\n### NÉGOCIATION DU BRIEFING MATINAL\n- Le briefing matinal du jour est stocké dans `custom_scopes.today_briefing_state`. Si l'utilisateur répond pour accepter, modifier, remplacer ou reporter l'activité proposée ce matin :\n  - Mets à jour `today_briefing_state` via `update_memory_rule` (`scope: 'today_briefing_state'`, `volatile: true`, `expires_at: '{{ $json.current_date }}'`) et/ou applique la mutation de tracker correspondante.\n  - Confirme immédiatement le plan ajusté en 2 lignes directes et factuelles.\n\n### CONTEXTE DYNAMIQUE CHARGÉ DEPUIS /home/node/user_data/\n- Registre des Trackers (`trackers_registry.json`) :\n{{ JSON.stringify($json.trackers_registry) }}\n\n- Règles Mémoire & Scopes (`memory_rules.json`) :\n{{ JSON.stringify($json.memory_rules) }}\n\n### UTILISATION DES 4 META-TOOLS (TRACKERS & MÉMOIRE)\nTu disposes de 4 outils génériques recevant un argument JSON stringifié (`query`) :\n1. `create_or_update_tracker_schema` : Pour créer ou modifier la structure d'un tracker (`CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, `ACTIVITY_LOG`).\n2. `mutate_tracker_record` : Pour ajouter/modifier une entrée dans `data_<tracker_id>.json` ou avancer/maintenir (`advance_cycle`, `skip_or_shift_cycle`, `set_cycle_index`) un tracker `CYCLE_STATE_MACHINE`.\n3. `query_tracker_records` : Pour lire et filtrer les entrées d'un tracker (par statut, ancienneté `older_than_days` ou récence `recent_days`).\n4. `update_memory_rule` : Pour ajouter, modifier ou supprimer une règle dans `morning_rules` ou dans un scope dynamique `custom_scopes.<dynamic_scope_name>` (avec support `volatile` et `expires_at`).\n\n### UTILISATION DES 4 OUTILS GOOGLE TASKS (`@default`)\n1. `google_tasks_list` : Liste les tâches actives dans Google Tasks (`@default`) avec leurs IDs (`id`) et titres (`title`). Toujours appeler cet outil AVANT `google_tasks_complete` ou `google_tasks_delete`.\n2. `google_tasks_create` : Crée une nouvelle tâche dans Google Tasks (`@default`) avec `title` et `notes`.\n3. `google_tasks_complete` : Marque une tâche comme terminée (`status: completed`) dans Google Tasks (`@default`) à partir de son `taskId` exact.\n4. `google_tasks_delete` : Supprime définitivement une tâche dans Google Tasks (`@default`) à partir de son `taskId` exact."
         }
       },
       "id": "b1a00001-0003-4000-8000-000000000003",
@@ -62,7 +62,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        640,
+        520,
         580
       ],
       "credentials": {
@@ -83,7 +83,7 @@
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        800,
+        680,
         580
       ]
     },
@@ -98,7 +98,7 @@
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        960,
+        840,
         580
       ]
     },
@@ -113,7 +113,7 @@
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        1120,
+        1000,
         580
       ]
     },
@@ -128,9 +128,115 @@
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        1280,
+        1160,
         580
       ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Liste les tâches actives dans Google Tasks (@default) avec leurs IDs et titres. Toujours appeler cet outil AVANT de compléter ou supprimer une tâche pour obtenir son taskId exact.",
+        "resource": "task",
+        "operation": "getAll",
+        "task": "@default",
+        "returnAll": false,
+        "limit": 50,
+        "additionalFields": {
+          "showCompleted": false
+        }
+      },
+      "id": "b1a00001-0011-4000-8000-000000000011",
+      "name": "google_tasks_list",
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        680,
+        760
+      ],
+      "credentials": {
+        "googleTasksOAuth2Api": {
+          "id": "GTASKS_CREDENTIAL_ID",
+          "name": "Jarvis Tasks"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crée une nouvelle tâche dans Google Tasks (@default).",
+        "resource": "task",
+        "operation": "create",
+        "task": "@default",
+        "title": "={{ $fromAI('title', 'Titre concis et actionnable de la tâche', 'string') }}",
+        "additionalFields": {
+          "notes": "={{ $fromAI('notes', 'Notes ou contexte optionnel', 'string') }}"
+        }
+      },
+      "id": "b1a00001-0012-4000-8000-000000000012",
+      "name": "google_tasks_create",
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        840,
+        760
+      ],
+      "credentials": {
+        "googleTasksOAuth2Api": {
+          "id": "GTASKS_CREDENTIAL_ID",
+          "name": "Jarvis Tasks"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Marque une tâche existante comme terminée (completed) dans Google Tasks (@default). Nécessite le taskId exact obtenu via google_tasks_list.",
+        "resource": "task",
+        "operation": "update",
+        "task": "@default",
+        "taskId": "={{ $fromAI('taskId', 'ID exact de la tâche Google Tasks', 'string') }}",
+        "updateFields": {
+          "status": "completed"
+        }
+      },
+      "id": "b1a00001-0013-4000-8000-000000000013",
+      "name": "google_tasks_complete",
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        760
+      ],
+      "credentials": {
+        "googleTasksOAuth2Api": {
+          "id": "GTASKS_CREDENTIAL_ID",
+          "name": "Jarvis Tasks"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Supprime définitivement une tâche dans Google Tasks (@default). Nécessite le taskId exact obtenu via google_tasks_list.",
+        "resource": "task",
+        "operation": "delete",
+        "task": "@default",
+        "taskId": "={{ $fromAI('taskId', 'ID exact de la tâche Google Tasks', 'string') }}"
+      },
+      "id": "b1a00001-0014-4000-8000-000000000014",
+      "name": "google_tasks_delete",
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        760
+      ],
+      "credentials": {
+        "googleTasksOAuth2Api": {
+          "id": "GTASKS_CREDENTIAL_ID",
+          "name": "Jarvis Tasks"
+        }
+      }
     },
     {
       "parameters": {
@@ -239,6 +345,50 @@
         ]
       ]
     },
+    "google_tasks_list": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_tasks_create": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_tasks_complete": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_tasks_delete": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis Voice AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Jarvis Voice AI Agent": {
       "main": [
         [
@@ -266,7 +416,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "sprint1-step1-2-voice-agent-core",
+  "versionId": "sprint1-step1-3-voice-google-tasks",
   "meta": {
     "templateCredsSetupCompleted": false
   },
@@ -276,6 +426,9 @@
     },
     {
       "name": "meta-tools"
+    },
+    {
+      "name": "google-tasks"
     }
   ]
 }

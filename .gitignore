@@ -1,10 +1,13 @@
 # Secrets & Environnement
 .env
 infra/.env
+backend/.env
 
 # Données persistantes Docker
 n8n_data/
 infra/n8n_data/
+backend_data/
+infra/backend_data/
 
 # Private runtime trackers & contextual memory
 user_data/
@@ -14,4 +17,9 @@ infra/user_data/
 .DS_Store
 node_modules/
 vendor/
+backend/vendor/
+backend/database/*.sqlite
+backend/database/*.sqlite-journal
+backend/database/*.sqlite-shm
+backend/database/*.sqlite-wal
 target/

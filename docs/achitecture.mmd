@@ -8,6 +8,7 @@ flowchart TB
         VOICE["🎙️ Assistant Vocal Android / Webhooks"]:::user
         CHAT["💬 Discord (#briefing, #logs-voix, #chatbot)"]:::user
         CAL["📅 Agenda & Google Tasks"]:::user
+        DASH["💻 Jarvis Web Cockpit (Vue.js 3)<br/>jarvis-dashboard.victor-giroud.fr"]:::future
     end
 
     subgraph CLOUD ["☁️ Écosystème Google Workspace & Sources Externes"]
@@ -18,16 +19,21 @@ flowchart TB
     end
 
     subgraph VPS ["🖥️ VPS OVH (CloudPanel + Docker + CI/CD)"]
-        N8N["⚙️ Orchestrateur n8n (Workflows 01, 02, 03, 04)"]:::vps
+        N8N["⚙️ Orchestrateur n8n (Workflows 01, 02, 03, 04)<br/>127.0.0.1:5678"]:::vps
+        API["🛡️ jarvis-backend (Laravel 11 / PHP 8.3 / Sanctum)<br/>127.0.0.1:8000 -> jarvis-api.victor-giroud.fr"]:::vps
         DBRIDGE["🤖 jarvis-discord-bridge (#chatbot Text + Audio)"]:::vps
         USERDATA["🗄️ Volume user_data (Trackers, Memory, Chat History & Archives 30j)"]:::vps
+        SQLITE["🔐 Volume backend_data (SQLite Sanctum Auth)"]:::vps
         GEMINI["🧠 API Gemini 3.5 Flash Lite"]:::vps
-        DASH["💻 Dashboard Jarvis (Vue.js + API)<br/>Phase 3"]:::future
     end
 
     VOICE -->|"POST /webhook/voice-command"| N8N
     CHAT <-->|"Messages & Vocaux #chatbot"| DBRIDGE
     DBRIDGE <-->|"POST /webhook/discord-chat"| N8N
+    DASH <-->|"REST API (Bearer Sanctum)"| API
+    API <-->|"Auth & Tokens"| SQLITE
+    API <-->|"Lecture / Écriture atomique LOCK_EX"| USERDATA
+    API <-->|"Proxy interne /webhook/*"| N8N
     GTASKS <-->|"CRUD & Déduplication"| N8N
     GMAIL <-->|"Recherche, Brouillons & Filtrage 24h"| N8N
     GCAL <-->|"CRUD & Événements du jour"| N8N
@@ -36,4 +42,3 @@ flowchart TB
     N8N <-->|"Lecture / Écriture / Compression 30j"| USERDATA
     N8N <-->|"Orchestration, Transcription Audio & Synthèse"| GEMINI
     N8N -->|"Webhooks #briefing & #logs-voix"| CHAT
-    DASH <-->|"REST / Webhooks"| N8N

@@ -10,12 +10,12 @@ echo "🔍 [Jarvis Security Hook] Scanning repository for leaked secrets and val
 ERRORS=0
 
 # 1. Verify that private runtime directories are not tracked by Git
-if git ls-files --error-unmatch infra/n8n_data infra/user_data .env infra/.env >/dev/null 2>&1; then
+if git ls-files --error-unmatch infra/n8n_data infra/user_data infra/backend_data .env infra/.env backend/.env >/dev/null 2>&1; then
   echo "❌ ERROR: Private runtime data or .env file is tracked by Git!"
   ERRORS=$((ERRORS + 1))
 fi
 
-# 2. Scan workflows/ and infra/ for hardcoded secrets (Google API keys, Discord webhooks/tokens, hardcoded emails)
+# 2. Scan workflows/, infra/, and backend/app for hardcoded secrets (Google API keys, Discord webhooks/tokens, hardcoded emails)
 SECRET_PATTERNS=(
   'AIza[0-9A-Za-z_-]{35}'
   'https://discord(app)?\.com/api/webhooks/[0-9]+/[0-9A-Za-z_-]+'
@@ -26,6 +26,9 @@ SECRET_PATTERNS=(
 SCAN_TARGETS=()
 [ -d "workflows" ] && SCAN_TARGETS+=("workflows")
 [ -d "infra" ] && SCAN_TARGETS+=("infra")
+[ -d "backend/app" ] && SCAN_TARGETS+=("backend/app")
+[ -d "backend/config" ] && SCAN_TARGETS+=("backend/config")
+[ -d "backend/routes" ] && SCAN_TARGETS+=("backend/routes")
 
 if [ ${#SCAN_TARGETS[@]} -gt 0 ]; then
   for pattern in "${SECRET_PATTERNS[@]}"; do

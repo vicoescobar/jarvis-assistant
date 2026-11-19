@@ -18,12 +18,18 @@ jobs:
           script: |
             cd /home/jarvis/app
             git pull origin main
-            mkdir -p /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data
+            mkdir -p /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data /home/jarvis/app/infra/backend_data
             [ -f /home/jarvis/app/infra/user_data/trackers_registry.json ] || echo '{"trackers":{}}' > /home/jarvis/app/infra/user_data/trackers_registry.json
             [ -f /home/jarvis/app/infra/user_data/memory_rules.json ] || echo '{"morning_rules":[],"custom_scopes":{}}' > /home/jarvis/app/infra/user_data/memory_rules.json
             [ -f /home/jarvis/app/infra/user_data/discord_chat_history.json ] || echo '{"messages":[]}' > /home/jarvis/app/infra/user_data/discord_chat_history.json
-            sudo chown -R 1000:1000 /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data
+            [ -f /home/jarvis/app/infra/backend_data/database.sqlite ] || touch /home/jarvis/app/infra/backend_data/database.sqlite
+            grep -q "^BACKEND_APP_KEY=" /home/jarvis/app/.env 2>/dev/null || echo "BACKEND_APP_KEY=base64:$(openssl rand -base64 32)" >> /home/jarvis/app/.env
+            grep -q "^BACKEND_APP_URL=" /home/jarvis/app/.env 2>/dev/null || echo "BACKEND_APP_URL=https://jarvis-api.victor-giroud.fr" >> /home/jarvis/app/.env
+            grep -q "^FRONTEND_URL=" /home/jarvis/app/.env 2>/dev/null || echo "FRONTEND_URL=https://jarvis-dashboard.victor-giroud.fr" >> /home/jarvis/app/.env
+            sudo chown -R 1000:1000 /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data /home/jarvis/app/infra/backend_data
             sudo docker compose --env-file /home/jarvis/app/.env -f /home/jarvis/app/infra/docker-compose.yml up -d --build --remove-orphans
+            sudo docker exec jarvis-backend php artisan migrate --force || true
+            sudo docker exec jarvis-backend php artisan jarvis:seed-owner || true
             sudo docker exec -u node jarvis-n8n n8n export:credentials --all --output=/tmp/n8n_creds.json || true
             sudo docker exec -u node jarvis-n8n node -e '
               const fs = require("fs");

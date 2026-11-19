@@ -1,6 +1,6 @@
 # 🧠 Jarvis Assistant — ADHD Executive Prosthesis & AI Orchestrator
 
-Jarvis is an event-driven personal assistant and executive function prosthesis built with **n8n**, **Google Gemini (`gemini-3.5-flash-lite`)**, **Docker Compose**, and **GitHub Actions CI/CD**.
+Jarvis is an event-driven personal assistant and executive function prosthesis built with **n8n**, **Google Gemini (`gemini-3.5-flash-lite`)**, **Laravel 11 (PHP 8.3 REST API Gateway)**, **Docker Compose**, and **GitHub Actions CI/CD**.
 
 It is designed around two core goals:
 1. **Clinical ADHD Cognitive Accessibility & Direct Executive Tone:** Reduce cognitive friction (< 2 minutes per interaction) through architectural noise filtering, proactive orchestration, and a crisp, factual **Chief-of-Staff executive tone** (zero patronizing/coddling language, zero Night Amnesty rollovers, full visibility on all active Google Tasks `@default` including undated ones, and 45-min timed Ableton Live sandboxes).
@@ -19,7 +19,18 @@ It is designed around two core goals:
 
 ---
 
+## 🛡️ REST API Gateway (`backend/` — Laravel 11 & Sanctum)
+
+`jarvis-backend` (`https://jarvis-api.victor-giroud.fr` -> `127.0.0.1:8000`) is a low-RAM (< 80 MB idle) **PHP 8.3-FPM (`ondemand`) + Nginx Alpine** container running as UID/GID `1000:1000`:
+- **Authentication (`Laravel Sanctum` + SQLite):** `GET /api/health`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, seeded idempotently via `php artisan jarvis:seed-owner`.
+- **Dynamic Trackers (`TrackerStorageService` with `LOCK_EX`):** `GET /api/trackers`, `GET /api/trackers/{trackerId}` (`?include_archive=true`), `POST /api/trackers/{trackerId}/records`, `PATCH /api/trackers/{trackerId}/records/{recordId}`, `DELETE /api/trackers/{trackerId}/records/{recordId}`, and `POST /api/trackers/{trackerId}/cycle` (`advance`, `set`, and zero-guilt `skip` writing a volatile `cycle_overrides` rule expiring tomorrow in `memory_rules.json`).
+- **Context Memory (`MemoryRuleService`):** `GET /api/memory` (with automatic expired volatile purge), `POST /api/memory/rules`, `DELETE /api/memory/rules/{ruleId}`.
+- **n8n Orchestrator Bridge (`N8nGatewayService`):** `POST /api/jarvis/command`, `GET /api/jarvis/chat/history` (shared with `#chatbot`), `POST /api/jarvis/chat`, `POST /api/jarvis/briefing/trigger`.
+
+---
+
 ## 🔮 Future Backlog & Bonus Features
+- **Jarvis Web Cockpit (`frontend/`):** Vue.js 3 + Tailwind CSS dashboard (`https://jarvis-dashboard.victor-giroud.fr`).
 - **Real-time Discord Voice Channel (RTC):** Bidirectional real-time voice conversation in a Discord voice channel (Bonus backlog item).
 
 ---
@@ -31,10 +42,12 @@ It is designed around two core goals:
 │   ├── hooks/pre-commit-secrets.sh          # Blocks leaked API keys/webhooks & validates workflow JSONs
 │   └── skills/                              # Domain & Sprint specifications (Dual-Loop Architecture)
 ├── .github/workflows/deploy.yml             # Automated SSH deployment & workflow import to OVH VPS
+├── backend/                                 # Laravel 11 REST API Gateway (PHP 8.3, Sanctum, SQLite)
 ├── docs/achitecture.mmd                     # Mermaid system architecture diagram
 ├── infra/
-│   ├── docker-compose.yml                   # Production n8n stack bound to 127.0.0.1:5678
+│   ├── docker-compose.yml                   # Production stack (jarvis-n8n, jarvis-discord-bridge, jarvis-backend)
 │   └── .env.exemple                         # Environment template
+├── scripts/discord-bridge/                  # Discord #chatbot Gateway bridge (Text + Audio)
 └── workflows/                               # Versioned, sanitized n8n workflows
 ```
 

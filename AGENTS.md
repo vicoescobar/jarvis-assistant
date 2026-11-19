@@ -15,12 +15,16 @@
   - SSH key-only authentication (`~/.ssh/github_deploy`)
   - Passwordless sudoers restricted strictly to `/snap/bin/docker` and `/usr/bin/chown` (`/etc/sudoers.d/jarvis-docker`).
 - **Docker Runtime:** Installed via Ubuntu Snap.
-  - Volumes `/home/jarvis/app/infra/n8n_data` and `/home/jarvis/app/infra/user_data` MUST maintain `1000:1000` ownership (internal `node` user in n8n container).
+  - Volumes `/home/jarvis/app/infra/n8n_data`, `/home/jarvis/app/infra/user_data`, and `/home/jarvis/app/infra/backend_data` MUST maintain `1000:1000` ownership (internal `node` user in n8n container and `www-data` UID `1000` in `jarvis-backend`).
   - `NODE_FUNCTION_ALLOW_BUILTIN=fs,path,crypto,http,https,url` and `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` enabled on `jarvis-n8n` so Meta-Tools and workflows can read/write runtime JSON files in `/home/node/user_data/` and dispatch notifications to `DISCORD_BRIEFING_WEBHOOK_URL` (`#briefing`) and `DISCORD_VOICE_LOG_WEBHOOK_URL` (`#logs-voix`).
   - `jarvis-discord-bridge` (`scripts/discord-bridge/`, Node.js 20 Alpine, `discord.js` v14) runs on the internal Docker network, listens to `#chatbot` (`DISCORD_CHATBOT_CHANNEL_ID`) for text messages and audio voice notes, and forwards them to `http://jarvis-n8n:5678/webhook/discord-chat`.
-- **Reverse Proxy & SSL:** CloudPanel (Nginx) on domain `https://jarvis.victor-giroud.fr/` (IONOS domain `victor-giroud.fr`) with Let's Encrypt SSL forwarding to `http://127.0.0.1:5678`.
+  - `jarvis-backend` (`backend/`, PHP 8.3 FPM `ondemand` + Nginx Alpine, Laravel 11 + Sanctum + SQLite) runs as UID/GID `1000:1000`, mounts `./user_data:/var/www/user_data` (with atomic `LOCK_EX` writes) and `./backend_data:/var/www/storage/app/sqlite`, and proxies orchestration actions to `http://jarvis-n8n:5678/webhook/...`.
+- **Reverse Proxy & SSL:** CloudPanel (Nginx) with Let's Encrypt SSL:
+  - `https://jarvis.victor-giroud.fr/` -> `http://127.0.0.1:5678` (`jarvis-n8n`)
+  - `https://jarvis-api.victor-giroud.fr/` -> `http://127.0.0.1:8000` (`jarvis-backend`)
+  - `https://jarvis-dashboard.victor-giroud.fr/` -> Frontend Vue.js 3 Cockpit
 - **Orchestrator:** `jarvis-n8n` (`docker.n8n.io/n8nio/n8n:latest`) with lifetime Community License unlocked (Folders & Advanced Debugging enabled).
-- **CI/CD Pipeline:** Every push to `main` triggers `.github/workflows/deploy.yml`, which connects via SSH as `jarvis`, pulls `main`, initializes `trackers_registry.json`, `memory_rules.json`, and `discord_chat_history.json` in `infra/user_data` if missing, enforces `1000:1000` on `n8n_data` and `user_data`, runs `docker compose up -d --build --remove-orphans`, and auto-imports versioned workflows via `n8n import:workflow --separate --input=/home/node/workflows/`.
+- **CI/CD Pipeline:** Every push to `main` triggers `.github/workflows/deploy.yml`, which connects via SSH as `jarvis`, pulls `main`, initializes `trackers_registry.json`, `memory_rules.json`, and `discord_chat_history.json` in `infra/user_data` plus `database.sqlite` in `infra/backend_data` if missing, enforces `1000:1000` on `n8n_data`, `user_data`, and `backend_data`, runs `docker compose up -d --build --remove-orphans`, executes `php artisan migrate --force && php artisan jarvis:seed-owner` on `jarvis-backend`, and auto-imports versioned workflows via `n8n import:workflow --separate --input=/home/node/workflows/`.
 
 ---
 
@@ -54,15 +58,17 @@
 - `.agents/skills/sprint1-voice-google-tasks/SKILL.md` : Native Google Tasks Voice Tools (`google_tasks_list`, `google_tasks_create`, `google_tasks_complete`, `google_tasks_delete`) in `01-voice-agent-core.json`
 - `.agents/skills/sprint1-voice-full-workspace/SKILL.md` : Full Google Workspace Native Voice Tools (Calendar, Gmail, Drive, Docs, Sheets + Tasks) in `01-voice-agent-core.json`
 - `.agents/skills/sprint1-discord-cleanup-chatbot/SKILL.md` : Discord Channel Separation (`#briefing` vs `#logs-voix`) & Persistent Discord Chatbot (`#chatbot` Text + Audio via `scripts/discord-bridge/` & `04-discord-chatbot.json`)
+- `.agents/skills/sprint3-laravel-api-gateway/SKILL.md` : Laravel 11 REST API Gateway (`backend/`, Sanctum, SQLite, `user_data` & n8n webhook bridge)
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram
-- `infra/docker-compose.yml` : Production containers (`jarvis-n8n` bound strictly to `127.0.0.1:5678` + internal `jarvis-discord-bridge`)
+- `infra/docker-compose.yml` : Production containers (`jarvis-n8n` on `127.0.0.1:5678`, `jarvis-backend` on `127.0.0.1:8000`, and internal `jarvis-discord-bridge`)
 - `infra/user_data/` : Private gitignored runtime volume (`trackers_registry.json`, `data_<tracker_id>.json`, `archive_<tracker_id>.json`, `memory_rules.json`, `discord_chat_history.json`)
+- `infra/backend_data/` : Private gitignored SQLite persistence volume (`database.sqlite`) for `jarvis-backend`
 - `infra/.env.exemple` : Environment template
 - `workflows/` : Versioned JSON exports of n8n workflows (`01-voice-agent-core.json`, `02-morning-briefing.json`, `03-memory-compression.json`, `04-discord-chatbot.json`)
 - `scripts/discord-bridge/` : Lightweight Node.js 20 (`discord.js` v14) Gateway bridge forwarding `#chatbot` text & audio voice notes to n8n
-- `backend/` : Sprint 3 REST API (Spring Boot or Laravel)
+- `backend/` : Sprint 3 (Step 3.1) Laravel 11 REST API Gateway (PHP 8.3 FPM `ondemand` + Nginx Alpine, Sanctum, SQLite)
 - `frontend/` : Sprint 3 Jarvis Web Cockpit (Vue.js 3 + Tailwind CSS)
 
 ---
@@ -75,7 +81,9 @@
   - **Step 1.3 (DONE):** Google Workspace OAuth2 integration in `workflows/02-morning-briefing.json` (Google Calendar events, Gmail 24h internship/rule triage, Google Tasks `@default` read/deduplication & automatic task creation), removal of Night Amnesty, prompt-driven `tracker_mutations`, Direct Executive Tone, 17 native Google Workspace tools in `01-voice-agent-core.json`, and Monthly Long-Term Memory Compression (`workflows/03-memory-compression.json`).
   - **Sprint 1 Closure (DONE):** Dedicated Discord voice log channel (`#logs-voix` via `DISCORD_VOICE_LOG_WEBHOOK_URL`) and persistent multi-turn Discord Chatbot (`#chatbot` supporting text and audio attachments via `scripts/discord-bridge/` and `workflows/04-discord-chatbot.json` with `/home/node/user_data/discord_chat_history.json`).
 - **Sprint 2 (Student & Creative Ecosystem):** School Outlook integration, Promo Discord digest, Ableton 45-min Sandbox timer & MP3 exit ritual, Google Drive "Boîte à vrac".
-- **Sprint 3 (Jarvis Cockpit & Analytics):** Fullstack Web Dashboard (Vue.js 3 + Spring Boot/Laravel API), contextual AI chat, 5-second Sport/Nutrition logger, Weekly CBT review agent.
+- **Sprint 3 (Jarvis Cockpit & Analytics — IN PROGRESS):**
+  - **Step 3.1 (DONE):** Lightweight PHP 8.3 / Laravel 11 REST API Gateway (`backend/`, `jarvis-backend` bound to `127.0.0.1:8000` -> `https://jarvis-api.victor-giroud.fr/`) secured with Laravel Sanctum & SQLite, providing `TrackerStorageService` (CRUD + zero-guilt cycle skip with volatile `cycle_overrides` rule), `MemoryRuleService` (CRUD + expired volatile auto-purge), and `N8nGatewayService` (shared `discord_chat_history.json` + internal webhook proxy).
+  - **Step 3.2 (NEXT):** Fullstack Web Dashboard (`frontend/`, Vue.js 3 + Tailwind CSS on `https://jarvis-dashboard.victor-giroud.fr/`), contextual AI chat, 5-second Sport/Nutrition logger, Weekly CBT review agent.
 - **Bonus / Backlog:** Real-time Discord Voice Channel (RTC) bidirectional voice assistant.
 
 ---

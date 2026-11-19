@@ -40,3 +40,31 @@ services:
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
       - DISCORD_CHATBOT_CHANNEL_ID=${DISCORD_CHATBOT_CHANNEL_ID:-}
       - N8N_CHATBOT_WEBHOOK_URL=http://jarvis-n8n:5678/webhook/discord-chat
+
+  jarvis-backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: jarvis-backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8080"
+    depends_on:
+      - n8n
+    environment:
+      - TZ=${TZ:-Europe/Paris}
+      - APP_NAME=Jarvis
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${BACKEND_APP_KEY:-}
+      - APP_URL=${BACKEND_APP_URL:-https://jarvis-api.victor-giroud.fr}
+      - FRONTEND_URL=${FRONTEND_URL:-https://jarvis-dashboard.victor-giroud.fr}
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/storage/app/sqlite/database.sqlite
+      - JARVIS_OWNER_EMAIL=${JARVIS_OWNER_EMAIL:-}
+      - JARVIS_OWNER_PASSWORD=${JARVIS_OWNER_PASSWORD:-}
+      - N8N_INTERNAL_URL=http://jarvis-n8n:5678
+      - USER_DATA_PATH=/var/www/user_data
+    volumes:
+      - ./user_data:/var/www/user_data
+      - ./backend_data:/var/www/storage/app/sqlite

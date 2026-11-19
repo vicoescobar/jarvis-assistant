@@ -5,32 +5,35 @@ flowchart TB
     classDef future fill:#64748B,stroke:#334155,stroke-width:2px,stroke-dasharray: 5 5,color:#fff
 
     subgraph CLIENT ["📱 Points de contact Mobile & Desktop"]
-        VOICE["🎙️ Assistant Vocal Android (Gemini)"]:::user
-        CHAT["💬 Discord / WhatsApp"]:::user
+        VOICE["🎙️ Assistant Vocal Android / Webhooks"]:::user
+        CHAT["💬 Discord (#briefing, #logs-voix, #chatbot)"]:::user
         CAL["📅 Agenda & Google Tasks"]:::user
     end
 
     subgraph CLOUD ["☁️ Écosystème Google Workspace & Sources Externes"]
         GMAIL["📧 Gmail (24h & Stage) & Outlook École"]:::google
         GCAL["📅 Google Calendar (primary)"]:::google
-        GTASKS["✅ Google Tasks (@default & #jarvis)"]:::google
+        GTASKS["✅ Google Tasks (@default)"]:::google
         GDRIVE["📂 Google Drive, Docs & Sheets"]:::google
     end
 
     subgraph VPS ["🖥️ VPS OVH (CloudPanel + Docker + CI/CD)"]
-        N8N["⚙️ Orchestrateur n8n (Workflows 01, 02, 03)"]:::vps
-        USERDATA["🗄️ Volume user_data (Trackers, Memory Rules & Archives 30j)"]:::vps
+        N8N["⚙️ Orchestrateur n8n (Workflows 01, 02, 03, 04)"]:::vps
+        DBRIDGE["🤖 jarvis-discord-bridge (#chatbot Text + Audio)"]:::vps
+        USERDATA["🗄️ Volume user_data (Trackers, Memory, Chat History & Archives 30j)"]:::vps
         GEMINI["🧠 API Gemini 3.5 Flash Lite"]:::vps
         DASH["💻 Dashboard Jarvis (Vue.js + API)<br/>Phase 3"]:::future
     end
 
-    VOICE -->|"Commandes '#jarvis ...'"| GTASKS
-    GTASKS <-->|"Déduplication & Création de tâches"| N8N
-    GMAIL -->|"Agrégation 24h & Filtrage memory_rules"| N8N
-    GCAL -->|"Événements du jour"| N8N
+    VOICE -->|"POST /webhook/voice-command"| N8N
+    CHAT <-->|"Messages & Vocaux #chatbot"| DBRIDGE
+    DBRIDGE <-->|"POST /webhook/discord-chat"| N8N
+    GTASKS <-->|"CRUD & Déduplication"| N8N
+    GMAIL <-->|"Recherche, Brouillons & Filtrage 24h"| N8N
+    GCAL <-->|"CRUD & Événements du jour"| N8N
     CAL <-->|"Synchronisation"| GCAL
-    GDRIVE <-->|"Logs & Second Cerveau"| N8N
+    GDRIVE <-->|"Docs, Sheets & Drive"| N8N
     N8N <-->|"Lecture / Écriture / Compression 30j"| USERDATA
-    N8N <-->|"Extraction JSON & Synthèse"| GEMINI
-    N8N <-->|"Briefing Matinal & Webhooks"| CHAT
+    N8N <-->|"Orchestration, Transcription Audio & Synthèse"| GEMINI
+    N8N -->|"Webhooks #briefing & #logs-voix"| CHAT
     DASH <-->|"REST / Webhooks"| N8N

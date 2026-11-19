@@ -1,13 +1,13 @@
 {
-  "name": "Jarvis — Cockpit Exécutif",
+  "name": "Jarvis Cockpit",
   "short_name": "Jarvis",
-  "description": "Cockpit Exécutif TDAH, Trackers Dynamiques & Chat/Voix Partagé",
+  "description": "Poste de commande exécutif, trackers dynamiques et canal vocal n8n",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#020617",
-  "theme_color": "#0f172a",
+  "background_color": "#141415",
+  "theme_color": "#141415",
   "icons": [
     {
       "src": "/jarvis-icon.svg",
@@ -18,7 +18,7 @@
   ],
   "shortcuts": [
     {
-      "name": "Commande Vocale Directe",
+      "name": "Commande vocale directe",
       "short_name": "Voix Jarvis",
       "description": "Ouvrir le canal vocal et activer le micro immédiatement",
       "url": "/?view=voice&autostart=true",
@@ -31,9 +31,9 @@
       ]
     },
     {
-      "name": "Trackers & Cycles",
+      "name": "Trackers et cycles",
       "short_name": "Trackers",
-      "description": "Accéder aux trackers dynamiques",
+      "description": "Ouvrir les trackers dynamiques",
       "url": "/?view=overview",
       "icons": [
         {

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { jarvisApi } from '@/services/api'
+import AppIcon from '@/components/AppIcon.vue'
 
 const emit = defineEmits(['updated'])
 
@@ -36,7 +37,7 @@ async function fetchMemory() {
         ? data.custom_scopes
         : {}
   } catch (err) {
-    error.value = err.message || 'Impossible de charger les règles mémoire.'
+    error.value = err.message || 'Lecture de memory_rules.json impossible'
   } finally {
     loading.value = false
   }
@@ -67,7 +68,7 @@ async function handleCreateRule() {
     await fetchMemory()
     emit('updated')
   } catch (err) {
-    error.value = err.message || 'Création de la règle impossible.'
+    error.value = err.message || 'Création refusée'
   } finally {
     submitting.value = false
   }
@@ -80,7 +81,7 @@ async function handleDeleteRule(ruleId) {
     await fetchMemory()
     emit('updated')
   } catch (err) {
-    error.value = err.message || 'Suppression impossible.'
+    error.value = err.message || 'Suppression refusée'
   }
 }
 
@@ -88,36 +89,38 @@ onMounted(fetchMemory)
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="enter-fade space-y-6">
     <!-- New Rule Form -->
     <form
-      class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-4"
+      class="rounded-[16px] bg-graphite-card border hairline-border p-6 space-y-4"
       @submit.prevent="handleCreateRule"
     >
-      <div class="flex items-center justify-between">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h2 class="text-base font-semibold text-white">
-            Ajouter une Règle Mémoire (<code class="font-mono text-indigo-300">memory_rules.json</code>)
+          <h2 class="text-[16px] leading-[22px] font-medium text-ink-primary">
+            Nouvelle règle contextuelle
           </h2>
-          <p class="text-xs text-slate-400">
-            Injectée dynamiquement dans le briefing 08:30 et l'agent vocal. Les règles volatiles expirées sont purgées automatiquement.
+          <p class="mt-0.5 text-xs text-ink-secondary">
+            Stockée dans <span class="font-mono meta-mono text-ink-primary">memory_rules.json</span> et injectée dans le briefing de 08:30
           </p>
         </div>
       </div>
 
       <div
         v-if="error"
-        class="rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-2 text-xs text-amber-200"
+        class="rounded-[8px] border border-semantic-negative/40 bg-graphite-deep px-3.5 py-2 text-xs text-semantic-negative"
       >
         {{ error }}
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div>
-          <label class="block text-xs font-mono text-slate-300 mb-1">Scope</label>
+          <label class="block text-xs font-mono meta-mono text-ink-secondary mb-1.5">
+            Scope
+          </label>
           <select
             v-model="form.scope"
-            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+            class="h-9 w-full rounded-[8px] border hairline-border bg-graphite-deep px-3 text-xs text-ink-primary focus:border-[#ededed]/30 focus:outline-none"
           >
             <option
               v-for="sc in availableScopes"
@@ -126,113 +129,118 @@ onMounted(fetchMemory)
             >
               {{ sc }}
             </option>
-            <option value="__custom__">+ Nouveau scope snake_case...</option>
+            <option value="__custom__">+ Nouveau scope</option>
           </select>
         </div>
 
         <div v-if="form.scope === '__custom__'">
-          <label class="block text-xs font-mono text-slate-300 mb-1">
-            Nom du scope (snake_case)
+          <label class="block text-xs font-mono meta-mono text-ink-secondary mb-1.5">
+            Identifiant snake_case
           </label>
           <input
             v-model="form.customScopeName"
             type="text"
             required
-            placeholder="ex: stage_filters"
-            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+            placeholder="ex. stage_filters"
+            class="h-9 w-full rounded-[8px] border hairline-border bg-graphite-deep px-3 text-xs text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
           />
         </div>
 
-        <div class="flex items-end gap-3">
-          <label class="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer pb-2">
+        <div class="flex items-end pb-2">
+          <label class="inline-flex items-center gap-2 text-xs text-ink-secondary cursor-pointer">
             <input
               v-model="form.volatile"
               type="checkbox"
-              class="rounded border-slate-700 bg-slate-800 text-indigo-600"
+              class="h-3.5 w-3.5 rounded-[4px] border-ink-muted/40 bg-graphite-deep accent-[#ededed]"
             />
-            Règle volatile (temporaire)
+            <span>Volatile (expiration automatique)</span>
           </label>
         </div>
 
         <div v-if="form.volatile">
-          <label class="block text-xs font-mono text-slate-300 mb-1">
-            Date d'expiration
+          <label class="block text-xs font-mono meta-mono text-ink-secondary mb-1.5">
+            Expire le
           </label>
           <input
             v-model="form.expires_at"
             type="date"
             required
-            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+            class="h-9 w-full rounded-[8px] border hairline-border bg-graphite-deep px-3 text-xs text-ink-primary focus:border-[#ededed]/30 focus:outline-none"
           />
         </div>
       </div>
 
       <div>
-        <label class="block text-xs font-mono text-slate-300 mb-1">
-          Instruction exécutive
+        <label class="block text-xs font-mono meta-mono text-ink-secondary mb-1.5">
+          Instruction
         </label>
         <div class="flex flex-col sm:flex-row gap-2">
           <input
             v-model="form.instruction"
             type="text"
             required
-            placeholder="Ex: Prioriser tous les mails contenant 'offre alternance Java' ou 'entretien technique'..."
-            class="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+            placeholder="Prioriser les mails d’alternance Java ou décaler un cycle"
+            class="h-9 flex-1 rounded-[8px] border hairline-border bg-graphite-deep px-3.5 text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
           />
           <button
             type="submit"
             :disabled="submitting"
-            class="rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 text-xs font-semibold text-white"
+            class="btn-primary h-9 rounded-[8px] px-4 text-xs font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-40"
           >
-            Enregistrer la règle
+            <AppIcon name="plus" />
+            <span>Ajouter la règle</span>
           </button>
         </div>
       </div>
     </form>
 
-    <!-- Morning Rules -->
-    <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-white">
-          Scope principal : <code class="font-mono text-indigo-300">morning_rules</code>
-        </h3>
-        <span class="text-xs font-mono text-slate-400">
-          {{ morningRules.length }} règle(s)
+    <!-- Morning Rules Block -->
+    <div class="rounded-[16px] bg-graphite-card border hairline-border p-6 space-y-3">
+      <div class="flex items-center justify-between border-b hairline-border pb-3">
+        <div class="flex items-center gap-2">
+          <span class="h-1.5 w-1.5 rounded-full bg-semantic-positive"></span>
+          <h3 class="text-sm font-medium text-ink-primary">
+            Règles permanentes du briefing
+          </h3>
+          <span class="text-xs font-mono meta-mono text-ink-muted">morning_rules</span>
+        </div>
+        <span class="text-xs font-mono meta-mono text-ink-muted">
+          {{ morningRules.length }}
         </span>
       </div>
 
-      <div v-if="loading" class="text-xs text-slate-400">Chargement...</div>
+      <div v-if="loading" class="text-xs text-ink-muted py-2">
+        Lecture en cours
+      </div>
       <div
         v-else-if="morningRules.length === 0"
-        class="text-xs text-slate-400 py-2"
+        class="text-xs text-ink-muted py-2"
       >
-        Aucune règle enregistrée dans <code class="font-mono">morning_rules</code>.
+        Aucune règle dans morning_rules
       </div>
 
-      <ul v-else class="divide-y divide-slate-800">
+      <ul v-else class="divide-y divide-[#ededed]/[0.06]">
         <li
           v-for="rule in morningRules"
           :key="rule.id"
           class="py-3 flex items-start justify-between gap-4"
         >
           <div class="space-y-1">
-            <p class="text-sm text-slate-100">{{ rule.instruction }}</p>
-            <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
+            <p class="text-[14px] leading-[20px] text-ink-primary">{{ rule.instruction }}</p>
+            <div class="flex flex-wrap items-center gap-3 text-xs font-mono meta-mono text-ink-muted">
               <span>{{ rule.id }}</span>
-              <span
-                v-if="rule.volatile"
-                class="rounded bg-indigo-950 border border-indigo-700/40 px-2 py-0.5 text-indigo-300"
-              >
-                Volatile · expire {{ rule.expires_at || 'N/A' }}
+              <span v-if="rule.volatile" class="text-accent">
+                expire {{ rule.expires_at || 'N/A' }}
               </span>
             </div>
           </div>
           <button
             type="button"
-            class="text-xs font-mono text-slate-400 hover:text-indigo-300"
+            class="pressable inline-flex items-center gap-1 text-xs font-mono meta-mono text-ink-muted hover:text-semantic-negative"
             @click="handleDeleteRule(rule.id)"
           >
-            Supprimer
+            <AppIcon name="trash" />
+            <span>Supprimer</span>
           </button>
         </li>
       </ul>
@@ -242,48 +250,50 @@ onMounted(fetchMemory)
     <div
       v-for="(rules, scopeName) in customScopes"
       :key="scopeName"
-      class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-3"
+      class="rounded-[16px] bg-graphite-card border hairline-border p-6 space-y-3"
     >
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-white">
-          Scope dynamique : <code class="font-mono text-indigo-300">{{ scopeName }}</code>
-        </h3>
-        <span class="text-xs font-mono text-slate-400">
-          {{ (rules || []).length }} règle(s)
+      <div class="flex items-center justify-between border-b hairline-border pb-3">
+        <div class="flex items-center gap-2">
+          <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+          <h3 class="text-sm font-medium text-ink-primary">
+            Scope dynamique
+          </h3>
+          <span class="text-xs font-mono meta-mono text-ink-secondary">{{ scopeName }}</span>
+        </div>
+        <span class="text-xs font-mono meta-mono text-ink-muted">
+          {{ (rules || []).length }}
         </span>
       </div>
 
       <div
         v-if="!rules || rules.length === 0"
-        class="text-xs text-slate-400 py-1"
+        class="text-xs text-ink-muted py-1"
       >
-        Scope vide.
+        Aucune règle active dans ce scope
       </div>
 
-      <ul v-else class="divide-y divide-slate-800">
+      <ul v-else class="divide-y divide-[#ededed]/[0.06]">
         <li
           v-for="rule in rules"
           :key="rule.id"
           class="py-3 flex items-start justify-between gap-4"
         >
           <div class="space-y-1">
-            <p class="text-sm text-slate-100">{{ rule.instruction }}</p>
-            <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
+            <p class="text-[14px] leading-[20px] text-ink-primary">{{ rule.instruction }}</p>
+            <div class="flex flex-wrap items-center gap-3 text-xs font-mono meta-mono text-ink-muted">
               <span>{{ rule.id }}</span>
-              <span
-                v-if="rule.volatile"
-                class="rounded bg-indigo-950 border border-indigo-700/40 px-2 py-0.5 text-indigo-300"
-              >
-                Volatile · expire {{ rule.expires_at || 'N/A' }}
+              <span v-if="rule.volatile" class="text-accent">
+                volatile · expire {{ rule.expires_at || 'N/A' }}
               </span>
             </div>
           </div>
           <button
             type="button"
-            class="text-xs font-mono text-slate-400 hover:text-indigo-300"
+            class="pressable inline-flex items-center gap-1 text-xs font-mono meta-mono text-ink-muted hover:text-semantic-negative"
             @click="handleDeleteRule(rule.id)"
           >
-            Supprimer
+            <AppIcon name="trash" />
+            <span>Supprimer</span>
           </button>
         </li>
       </ul>

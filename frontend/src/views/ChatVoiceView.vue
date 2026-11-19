@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onMounted, ref } from 'vue'
 import { jarvisApi, telemetry } from '@/services/api'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   autostartMic: {
@@ -17,6 +18,7 @@ const listening = ref(false)
 const speakAloud = ref(false)
 const error = ref('')
 const chatContainer = ref(null)
+const inputEl = ref(null)
 
 let recognition = null
 
@@ -61,7 +63,7 @@ function toggleMicrophone() {
     recognition = initSpeechRecognition()
   }
   if (!recognition) {
-    error.value = 'Reconnaissance vocale Web Speech non supportée sur ce navigateur.'
+    error.value = 'Reconnaissance vocale Web Speech indisponible sur ce navigateur'
     return
   }
 
@@ -71,7 +73,7 @@ function toggleMicrophone() {
     try {
       recognition.start()
     } catch {
-      // Already started
+      // Already active
     }
   }
 }
@@ -99,7 +101,7 @@ async function loadHistory() {
     messages.value = Array.isArray(data?.messages) ? data.messages : []
     await scrollToBottom()
   } catch (err) {
-    error.value = err.message || 'Impossible de charger l’historique.'
+    error.value = err.message || 'Impossible de charger discord_chat_history.json'
   } finally {
     loading.value = false
   }
@@ -122,7 +124,7 @@ async function handleSendMessage() {
 
   try {
     const response = await jarvisApi.sendChatMessage(text)
-    const reply = response?.reply || response?.output || 'Exécuté.'
+    const reply = response?.reply || response?.output || 'Exécuté'
     messages.value.push({
       role: 'assistant',
       content: reply,
@@ -131,7 +133,7 @@ async function handleSendMessage() {
     speakReply(reply)
     await scrollToBottom()
   } catch (err) {
-    error.value = err.message || 'Erreur lors de l’envoi à Jarvis.'
+    error.value = err.message || 'Échec de l’appel n8n'
   } finally {
     sending.value = false
   }
@@ -142,62 +144,78 @@ onMounted(async () => {
   if (props.autostartMic) {
     speakAloud.value = true
     toggleMicrophone()
+  } else {
+    inputEl.value?.focus()
   }
 })
 </script>
 
 <template>
-  <section class="rounded-2xl border border-slate-800 bg-slate-900/90 flex flex-col h-[72vh] min-h-[480px]">
-    <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-5 py-3.5">
-      <div>
-        <h2 class="text-base font-semibold text-white">
-          Canal Direct Jarvis (Partagé avec Discord #chatbot)
-        </h2>
-        <p class="text-xs text-slate-400">
-          Historique unifié <code class="font-mono text-indigo-300">discord_chat_history.json</code> — Texte & Reconnaissance Vocale
-        </p>
+  <section class="enter-fade rounded-[16px] bg-graphite-card border hairline-border flex flex-col h-[calc(100vh-148px)] min-h-[520px]">
+    <!-- Top instrument header -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b hairline-border px-5 py-3.5">
+      <div class="flex items-center gap-2.5">
+        <span
+          class="h-2 w-2 rounded-full"
+          :class="listening ? 'bg-accent' : 'bg-semantic-positive'"
+        ></span>
+        <div>
+          <h2 class="text-[15px] leading-[20px] font-medium text-ink-primary">
+            Canal direct Jarvis · Discord #chatbot
+          </h2>
+          <p class="text-xs text-ink-muted font-mono meta-mono">
+            discord_chat_history.json · {{ messages.length }} messages
+          </p>
+        </div>
       </div>
 
       <div class="flex items-center gap-3">
         <span
           v-if="telemetry.lastLatencyMs !== null"
-          class="rounded bg-slate-800 px-2 py-1 text-xs font-mono text-slate-300"
+          class="text-xs font-mono meta-mono text-ink-muted"
         >
           {{ telemetry.lastLatencyMs }} ms
         </span>
-        <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
-          <input
-            v-model="speakAloud"
-            type="checkbox"
-            class="rounded border-slate-700 bg-slate-800 text-indigo-600"
-          />
-          Synthèse vocale (TTS)
-        </label>
+
         <button
           type="button"
-          class="rounded-lg border border-slate-700 hover:bg-slate-800 px-2.5 py-1 text-xs text-slate-300"
+          class="pressable h-8 rounded-[8px] px-2.5 text-xs inline-flex items-center gap-1.5 border"
+          :class="
+            speakAloud
+              ? 'surface-raised text-ink-primary'
+              : 'bg-graphite-deep hairline-border text-ink-muted hover:text-ink-secondary'
+          "
+          @click="speakAloud = !speakAloud"
+        >
+          <AppIcon name="volume" />
+          <span>Lecture vocale</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-secondary h-8 rounded-[8px] px-2.5 text-xs inline-flex items-center gap-1.5"
           @click="loadHistory"
         >
-          Actualiser
+          <AppIcon name="refresh" />
+          <span>Synchroniser</span>
         </button>
       </div>
     </div>
 
-    <!-- Messages list -->
+    <!-- Conversation feed -->
     <div
       ref="chatContainer"
       class="flex-1 overflow-y-auto p-5 space-y-3"
     >
-      <div v-if="loading" class="text-xs text-slate-400">
-        Synchronisation de l'historique...
+      <div v-if="loading" class="text-xs font-mono meta-mono text-ink-muted">
+        Lecture de discord_chat_history.json
       </div>
 
       <div
         v-else-if="messages.length === 0"
-        class="rounded-xl border border-slate-800 bg-slate-950/50 p-6 text-center text-xs text-slate-400"
+        class="rounded-[12px] border hairline-border bg-graphite-deep/60 p-6 text-center text-xs text-ink-muted"
       >
-        Aucun message dans l'historique actif. Écris une instruction ou utilise le bouton micro.
+        Aucun échange enregistré dans la fenêtre courante
       </div>
 
       <div
@@ -207,70 +225,71 @@ onMounted(async () => {
         :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
       >
         <div
-          class="max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap"
+          class="max-w-[84%] sm:max-w-[72%] rounded-[12px] px-4 py-3 text-[14px] leading-[20px] whitespace-pre-wrap"
           :class="
             msg.role === 'user'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-slate-800/90 border border-slate-700/70 text-slate-100'
+              ? 'surface-raised text-ink-primary'
+              : 'bg-graphite-deep border hairline-border text-ink-primary'
           "
         >
-          <div class="text-[11px] font-mono opacity-70 mb-1">
-            {{ msg.role === 'user' ? 'Victor' : 'Jarvis' }}
-            <span v-if="msg.timestamp">
-              · {{ msg.timestamp.slice(11, 16) }}
-            </span>
+          <div class="flex items-center justify-between gap-4 text-[11px] font-mono meta-mono text-ink-muted mb-1">
+            <span>{{ msg.role === 'user' ? 'Victor' : 'Jarvis' }}</span>
+            <span v-if="msg.timestamp">{{ msg.timestamp.slice(11, 16) }}</span>
           </div>
-          <div>{{ msg.content || msg.text }}</div>
+          <div class="text-ink-primary">{{ msg.content || msg.text }}</div>
         </div>
       </div>
 
       <div v-if="sending" class="flex justify-start">
-        <div class="rounded-2xl bg-slate-800/70 border border-slate-700 px-4 py-2.5 text-xs text-indigo-300 font-mono">
-          Exécution de l'orchestrateur n8n en cours...
+        <div class="rounded-[12px] bg-graphite-deep border hairline-border px-4 py-2.5 text-xs font-mono meta-mono text-ink-secondary flex items-center gap-2">
+          <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+          <span>Exécution du workflow 04-discord-chatbot</span>
         </div>
       </div>
     </div>
 
     <div
       v-if="error"
-      class="mx-5 mb-2 rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-1.5 text-xs text-amber-200"
+      class="mx-5 mb-2 rounded-[8px] border border-semantic-negative/40 bg-graphite-deep px-3 py-2 text-xs text-semantic-negative"
     >
       {{ error }}
     </div>
 
-    <!-- Input & Microphone bar -->
+    <!-- Bottom command bar -->
     <form
-      class="border-t border-slate-800 p-4 flex items-center gap-2"
+      class="border-t hairline-border p-4 flex items-center gap-2 bg-graphite-deep/40 rounded-b-[16px]"
       @submit.prevent="handleSendMessage"
     >
       <button
         type="button"
-        class="rounded-xl px-3.5 py-2.5 text-xs font-semibold transition flex items-center gap-1.5"
+        class="pressable h-10 rounded-[8px] px-3.5 text-xs font-medium inline-flex items-center gap-2 border"
         :class="
           listening
-            ? 'bg-indigo-500 text-white ring-2 ring-indigo-400 animate-pulse'
-            : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+            ? 'bg-accent text-[#141415] border-accent'
+            : 'btn-secondary text-ink-primary'
         "
-        title="Dictée vocale directe"
+        title="Dictée vocale Web Speech"
         @click="toggleMicrophone"
       >
-        <span>🎙️</span>
-        <span>{{ listening ? 'Écoute...' : 'Voix' }}</span>
+        <AppIcon name="mic" />
+        <span>{{ listening ? 'Écoute active' : 'Voix' }}</span>
       </button>
 
       <input
+        ref="inputEl"
         v-model="inputText"
         type="text"
-        placeholder="Instruction directe (ex: Ajoute une tâche, décale le cycle sport, résume mes mails)..."
-        class="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none"
+        placeholder="Instruction pour Jarvis"
+        class="h-10 flex-1 rounded-[8px] border hairline-border bg-graphite-deep px-3.5 text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
       />
 
       <button
         type="submit"
         :disabled="sending || !inputText.trim()"
-        class="rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2.5 text-xs font-semibold text-white transition"
+        class="btn-primary h-10 rounded-[8px] px-4 text-xs font-medium inline-flex items-center gap-2 disabled:opacity-40"
       >
-        Envoyer
+        <span>Envoyer</span>
+        <kbd class="keycap bg-[#141415]/15 border-[#141415]/20 text-[#141415]">↵</kbd>
       </button>
     </form>
   </section>

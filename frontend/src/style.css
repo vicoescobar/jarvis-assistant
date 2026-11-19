@@ -3,7 +3,156 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    font: 100%/1.5 -apple-system, BlinkMacSystemFont, "Geist", "Inter", system-ui, sans-serif;
+    font-optical-sizing: auto;
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-slate-950 text-slate-100 min-h-screen;
+    background-color: #141415;
+    color: #ededed;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* Hairline border and subtle top specular highlight from unslop & apple-design */
+.hairline-border {
+  border-color: rgba(237, 237, 237, 0.08);
+}
+
+.surface-raised {
+  background-color: #232325;
+  border: 1px solid rgba(237, 237, 237, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.btn-primary {
+  background-color: #ededed;
+  color: #141415;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: background-color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #ffffff;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background-color: #232325;
+  color: #ededed;
+  border: 1px solid rgba(237, 237, 237, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: background-color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #2b2b2e;
+  border-color: rgba(237, 237, 237, 0.14);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.pressable {
+  transition: background-color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pressable:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Apple translucent material for floating chrome & sheets */
+.material-chrome {
+  background-color: rgba(25, 25, 27, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Size-specific tracking & tabular numerals */
+.title-display {
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  font-optical-sizing: auto;
+}
+
+.figure-tabular {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.meta-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Signature hardware keycap */
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background-color: #232325;
+  border: 1px solid rgba(237, 237, 237, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1;
+  color: #85858b;
+}
+
+/* Single Entrance Fade-and-Rise */
+@keyframes contentEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.enter-fade {
+  animation: contentEnter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Apple Accessibility: Reduced Motion & Reduced Transparency */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 120ms !important;
+  }
+  .btn-primary:active,
+  .btn-secondary:active,
+  .pressable:active {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .material-chrome {
+    background-color: #19191b !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }

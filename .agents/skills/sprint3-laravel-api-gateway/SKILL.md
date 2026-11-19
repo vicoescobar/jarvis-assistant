@@ -21,7 +21,7 @@ description: Implement Sprint 3 (Step 3.1) — Lightweight PHP 8.3 / Laravel 11 
 - Configure PHP-FPM with `pm = ondemand`, `pm.max_children = 5`, `pm.process_idle_timeout = 10s`.
 - Add service `jarvis-backend` to `infra/docker-compose.yml`:
   - Build context: `../backend`
-  - Port binding strictly localhost: `127.0.0.1:8000:8080` (for CloudPanel Nginx reverse proxy `https://jarvis-api.victor-giroud.fr` -> `http://127.0.0.1:8000`)
+  - Port binding strictly localhost: `127.0.0.1:5679:8080` (for CloudPanel Nginx reverse proxy `https://jarvis-api.victor-giroud.fr` -> `http://127.0.0.1:5679`)
   - Volumes:
     - `./user_data:/var/www/user_data`
     - `./backend_data:/var/www/storage/app/sqlite` (persists `database.sqlite` across rebuilds)

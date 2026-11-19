@@ -21,7 +21,7 @@
   - `jarvis-backend` (`backend/`, PHP 8.3 FPM `ondemand` + Nginx Alpine, Laravel 11 + Sanctum + SQLite) runs as UID/GID `1000:1000`, mounts `./user_data:/var/www/user_data` (with atomic `LOCK_EX` writes) and `./backend_data:/var/www/storage/app/sqlite`, and proxies orchestration actions to `http://jarvis-n8n:5678/webhook/...`.
 - **Reverse Proxy & SSL:** CloudPanel (Nginx) with Let's Encrypt SSL:
   - `https://jarvis.victor-giroud.fr/` -> `http://127.0.0.1:5678` (`jarvis-n8n`)
-  - `https://jarvis-api.victor-giroud.fr/` -> `http://127.0.0.1:8000` (`jarvis-backend`)
+  - `https://jarvis-api.victor-giroud.fr/` -> `http://127.0.0.1:5679` (`jarvis-backend`)
   - `https://jarvis-dashboard.victor-giroud.fr/` -> Frontend Vue.js 3 Cockpit
 - **Orchestrator:** `jarvis-n8n` (`docker.n8n.io/n8nio/n8n:latest`) with lifetime Community License unlocked (Folders & Advanced Debugging enabled).
 - **CI/CD Pipeline:** Every push to `main` triggers `.github/workflows/deploy.yml`, which connects via SSH as `jarvis`, pulls `main`, initializes `trackers_registry.json`, `memory_rules.json`, and `discord_chat_history.json` in `infra/user_data` plus `database.sqlite` in `infra/backend_data` if missing, enforces `1000:1000` on `n8n_data`, `user_data`, and `backend_data`, runs `docker compose up -d --build --remove-orphans`, executes `php artisan migrate --force && php artisan jarvis:seed-owner` on `jarvis-backend`, and auto-imports versioned workflows via `n8n import:workflow --separate --input=/home/node/workflows/`.
@@ -62,7 +62,7 @@
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram
-- `infra/docker-compose.yml` : Production containers (`jarvis-n8n` on `127.0.0.1:5678`, `jarvis-backend` on `127.0.0.1:8000`, and internal `jarvis-discord-bridge`)
+- `infra/docker-compose.yml` : Production containers (`jarvis-n8n` on `127.0.0.1:5678`, `jarvis-backend` on `127.0.0.1:5679`, and internal `jarvis-discord-bridge`)
 - `infra/user_data/` : Private gitignored runtime volume (`trackers_registry.json`, `data_<tracker_id>.json`, `archive_<tracker_id>.json`, `memory_rules.json`, `discord_chat_history.json`)
 - `infra/backend_data/` : Private gitignored SQLite persistence volume (`database.sqlite`) for `jarvis-backend`
 - `infra/.env.exemple` : Environment template
@@ -82,7 +82,7 @@
   - **Sprint 1 Closure (DONE):** Dedicated Discord voice log channel (`#logs-voix` via `DISCORD_VOICE_LOG_WEBHOOK_URL`) and persistent multi-turn Discord Chatbot (`#chatbot` supporting text and audio attachments via `scripts/discord-bridge/` and `workflows/04-discord-chatbot.json` with `/home/node/user_data/discord_chat_history.json`).
 - **Sprint 2 (Student & Creative Ecosystem):** School Outlook integration, Promo Discord digest, Ableton 45-min Sandbox timer & MP3 exit ritual, Google Drive "Boîte à vrac".
 - **Sprint 3 (Jarvis Cockpit & Analytics — IN PROGRESS):**
-  - **Step 3.1 (DONE):** Lightweight PHP 8.3 / Laravel 11 REST API Gateway (`backend/`, `jarvis-backend` bound to `127.0.0.1:8000` -> `https://jarvis-api.victor-giroud.fr/`) secured with Laravel Sanctum & SQLite, providing `TrackerStorageService` (CRUD + zero-guilt cycle skip with volatile `cycle_overrides` rule), `MemoryRuleService` (CRUD + expired volatile auto-purge), and `N8nGatewayService` (shared `discord_chat_history.json` + internal webhook proxy).
+  - **Step 3.1 (DONE):** Lightweight PHP 8.3 / Laravel 11 REST API Gateway (`backend/`, `jarvis-backend` bound to `127.0.0.1:5679` -> `https://jarvis-api.victor-giroud.fr/`) secured with Laravel Sanctum & SQLite, providing `TrackerStorageService` (CRUD + zero-guilt cycle skip with volatile `cycle_overrides` rule), `MemoryRuleService` (CRUD + expired volatile auto-purge), and `N8nGatewayService` (shared `discord_chat_history.json` + internal webhook proxy).
   - **Step 3.2 (NEXT):** Fullstack Web Dashboard (`frontend/`, Vue.js 3 + Tailwind CSS on `https://jarvis-dashboard.victor-giroud.fr/`), contextual AI chat, 5-second Sport/Nutrition logger, Weekly CBT review agent.
 - **Bonus / Backlog:** Real-time Discord Voice Channel (RTC) bidirectional voice assistant.
 

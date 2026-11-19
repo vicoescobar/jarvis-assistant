@@ -20,7 +20,7 @@ flowchart TB
 
     subgraph VPS ["🖥️ VPS OVH (CloudPanel + Docker + CI/CD)"]
         N8N["⚙️ Orchestrateur n8n (Workflows 01, 02, 03, 04)<br/>127.0.0.1:5678"]:::vps
-        API["🛡️ jarvis-backend (Laravel 11 / PHP 8.3 / Sanctum)<br/>127.0.0.1:8000 -> jarvis-api.victor-giroud.fr"]:::vps
+        API["🛡️ jarvis-backend (Laravel 11 / PHP 8.3 / Sanctum)<br/>127.0.0.1:5679 -> jarvis-api.victor-giroud.fr"]:::vps
         DBRIDGE["🤖 jarvis-discord-bridge (#chatbot Text + Audio)"]:::vps
         USERDATA["🗄️ Volume user_data (Trackers, Memory, Chat History & Archives 30j)"]:::vps
         SQLITE["🔐 Volume backend_data (SQLite Sanctum Auth)"]:::vps

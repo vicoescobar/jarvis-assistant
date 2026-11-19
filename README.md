@@ -21,7 +21,7 @@ It is designed around two core goals:
 
 ## 🛡️ REST API Gateway (`backend/` — Laravel 11 & Sanctum)
 
-`jarvis-backend` (`https://jarvis-api.victor-giroud.fr` -> `127.0.0.1:8000`) is a low-RAM (< 80 MB idle) **PHP 8.3-FPM (`ondemand`) + Nginx Alpine** container running as UID/GID `1000:1000`:
+`jarvis-backend` (`https://jarvis-api.victor-giroud.fr` -> `127.0.0.1:5679`) is a low-RAM (< 80 MB idle) **PHP 8.3-FPM (`ondemand`) + Nginx Alpine** container running as UID/GID `1000:1000`:
 - **Authentication (`Laravel Sanctum` + SQLite):** `GET /api/health`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, seeded idempotently via `php artisan jarvis:seed-owner`.
 - **Dynamic Trackers (`TrackerStorageService` with `LOCK_EX`):** `GET /api/trackers`, `GET /api/trackers/{trackerId}` (`?include_archive=true`), `POST /api/trackers/{trackerId}/records`, `PATCH /api/trackers/{trackerId}/records/{recordId}`, `DELETE /api/trackers/{trackerId}/records/{recordId}`, and `POST /api/trackers/{trackerId}/cycle` (`advance`, `set`, and zero-guilt `skip` writing a volatile `cycle_overrides` rule expiring tomorrow in `memory_rules.json`).
 - **Context Memory (`MemoryRuleService`):** `GET /api/memory` (with automatic expired volatile purge), `POST /api/memory/rules`, `DELETE /api/memory/rules/{ruleId}`.

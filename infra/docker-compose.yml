@@ -48,7 +48,7 @@ services:
     container_name: jarvis-backend
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8000:8080"
+      - "127.0.0.1:5679:8080"
     depends_on:
       - n8n
     environment:

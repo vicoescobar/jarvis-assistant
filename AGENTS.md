@@ -61,6 +61,7 @@
 - `.agents/skills/sprint1-discord-cleanup-chatbot/SKILL.md` : Discord Channel Separation (`#briefing` vs `#logs-voix`) & Persistent Discord Chatbot (`#chatbot` Text + Audio via `scripts/discord-bridge/` & `04-discord-chatbot.json`)
 - `.agents/skills/sprint3-laravel-api-gateway/SKILL.md` : Laravel 11 REST API Gateway (`backend/`, Sanctum, SQLite, `user_data` & n8n webhook bridge)
 - `.agents/skills/sprint3-vue-dashboard-pwa/SKILL.md` : Dynamic Vue.js 3 + Tailwind CSS Cockpit & Android PWA (`frontend/`, `127.0.0.1:5680:80`)
+- `.agents/skills/sprint3-gemini-live-voice/SKILL.md` : Real-Time Bidirectional Voice Mode ("Gemini Live" WebSocket + Ephemeral Token & Tool Execution Bridge)
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram
@@ -86,6 +87,7 @@
 - **Sprint 3 (Jarvis Cockpit & Analytics — DONE):**
   - **Step 3.1 (DONE):** Lightweight PHP 8.3 / Laravel 11 REST API Gateway (`backend/`, `jarvis-backend` bound to `127.0.0.1:5679` -> `https://jarvis-api.victor-giroud.fr/`) secured with Laravel Sanctum & SQLite, providing `TrackerStorageService` (CRUD + zero-guilt cycle skip with volatile `cycle_overrides` rule), `MemoryRuleService` (CRUD + expired volatile auto-purge), and `N8nGatewayService` (shared `discord_chat_history.json` + internal webhook proxy).
   - **Step 3.2 (DONE):** Dynamic Vue.js 3 + Tailwind CSS Cockpit & Android PWA (`frontend/`, `jarvis-dashboard` bound to `127.0.0.1:5680` -> `https://jarvis-dashboard.victor-giroud.fr/`) featuring 100% schema-driven tracker views, LLMOps observability, memory rules manager, shared Discord/Web chat, and 1-tap voice PWA shortcut (`/?view=voice&autostart=true`).
+  - **Step 3.3 (DONE):** Real-Time Bidirectional Voice Mode ("Gemini Live" Multimodal WebSocket) in the Vue.js 3 PWA (`frontend/src/components/LiveVoiceSession.vue`), backed by server-side ephemeral session issuance (`POST /api/jarvis/live/session`) and real-time function-calling execution (`POST /api/jarvis/live/tool`) in `jarvis-backend` (`backend/app/Services/GeminiLiveService.php`).
 - **Bonus / Backlog:** Real-time Discord Voice Channel (RTC) bidirectional voice assistant.
 
 ---

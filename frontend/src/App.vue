@@ -753,6 +753,7 @@ onBeforeUnmount(() => {
         <ChatVoiceView
           v-else-if="activeView === 'voice'"
           :autostart-mic="autostartMic"
+          @updated="refreshCockpitData"
         />
 
         <!-- VIEW 3: MEMORY RULES -->

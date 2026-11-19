@@ -31,7 +31,8 @@ flowchart TB
     CHAT <-->|"Messages & Vocaux #chatbot"| DBRIDGE
     DBRIDGE <-->|"POST /webhook/discord-chat"| N8N
     PWA <-->|"HTTPS SPA & Service Worker"| DASH
-    PWA <-->|"REST API (Bearer Sanctum)"| API
+    PWA <-->|"REST API + Live Session/Tools (Bearer Sanctum)"| API
+    PWA <-->|"Bidi WebSocket PCM 16kHz/24kHz (Gemini Live)"| GEMINI
     API <-->|"Auth & Tokens"| SQLITE
     API <-->|"Lecture / Écriture atomique LOCK_EX"| USERDATA
     API <-->|"Proxy interne /webhook/*"| N8N

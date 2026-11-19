@@ -346,4 +346,97 @@ class JarvisApiGatewayTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'dispatched');
     }
+
+    public function test_gemini_live_session_and_tool_execution_endpoints(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        File::put($this->tempUserDataDir.'/trackers_registry.json', json_encode([
+            'trackers' => [
+                'workout_cycle' => [
+                    'display_name' => 'Cycle Sport',
+                    'type' => 'CYCLE_STATE_MACHINE',
+                    'include_in_morning_briefing' => true,
+                    'cycle_config' => [
+                        'steps' => ['Push', 'Pull', 'Legs'],
+                        'current_index' => 0,
+                        'last_updated' => '2026-11-18',
+                    ],
+                ],
+            ],
+        ]));
+        File::put($this->tempUserDataDir.'/data_workout_cycle.json', json_encode([]));
+        File::put($this->tempUserDataDir.'/memory_rules.json', json_encode([
+            'morning_rules' => [
+                [
+                    'id' => 'rule_1',
+                    'instruction' => 'Surveiller les offres de stage Java.',
+                    'volatile' => false,
+                    'expires_at' => null,
+                    'created_at' => Carbon::now()->toIso8601String(),
+                ],
+            ],
+            'custom_scopes' => [],
+        ]));
+
+        // 1. Missing GEMINI_API_KEY returns 503
+        config(['jarvis.gemini_api_key' => '']);
+        $this->postJson('/api/jarvis/live/session')->assertStatus(503);
+
+        // 2. Configured GEMINI_API_KEY mints ephemeral Live session with dynamic context
+        config([
+            'jarvis.gemini_api_key' => 'test_server_side_gemini_key',
+            'jarvis.gemini_live_model' => 'models/gemini-2.0-flash-live-001',
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/v1alpha/auth_tokens*' => Http::response([
+                'name' => 'auth_tokens/ephemeral_test_token_123',
+            ], 200),
+            'http://jarvis-n8n:5678/webhook/voice-command' => Http::response([
+                'status' => 'executed',
+                'output' => 'Événement créé dans Google Calendar.',
+            ], 200),
+        ]);
+
+        $sessionResponse = $this->postJson('/api/jarvis/live/session');
+        $sessionResponse->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('model', 'models/gemini-2.0-flash-live-001')
+            ->assertJsonStructure([
+                'status',
+                'model',
+                'voice_name',
+                'ws_url_or_token',
+                'expires_at',
+                'system_instruction',
+                'tools',
+            ]);
+
+        $this->assertStringContainsString('Cycle Sport', $sessionResponse->json('system_instruction'));
+        $this->assertStringContainsString('Surveiller les offres de stage Java', $sessionResponse->json('system_instruction'));
+        $this->assertStringContainsString('ephemeral_test_token_123', $sessionResponse->json('ws_url_or_token'));
+
+        // 3. Execute Live tool: mutate_tracker_cycle
+        $this->postJson('/api/jarvis/live/tool', [
+            'tool_name' => 'mutate_tracker_cycle',
+            'arguments' => [
+                'tracker_id' => 'workout_cycle',
+                'action' => 'advance',
+            ],
+        ])->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('tool_name', 'mutate_tracker_cycle')
+            ->assertJsonPath('result.current_step', 'Pull');
+
+        // 4. Execute Live tool: execute_jarvis_command (n8n proxy)
+        $this->postJson('/api/jarvis/live/tool', [
+            'tool_name' => 'execute_jarvis_command',
+            'arguments' => [
+                'command' => 'Planifie une session Ableton de 45 minutes à 18h',
+            ],
+        ])->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('result.status', 'executed');
+    }
 }

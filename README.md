@@ -25,7 +25,7 @@ It is designed around two core goals:
 - **Authentication (`Laravel Sanctum` + SQLite):** `GET /api/health`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, seeded idempotently via `php artisan jarvis:seed-owner`.
 - **Dynamic Trackers (`TrackerStorageService` with `LOCK_EX`):** `GET /api/trackers`, `GET /api/trackers/{trackerId}` (`?include_archive=true`), `POST /api/trackers/{trackerId}/records`, `PATCH /api/trackers/{trackerId}/records/{recordId}`, `DELETE /api/trackers/{trackerId}/records/{recordId}`, and `POST /api/trackers/{trackerId}/cycle` (`advance`, `set`, and zero-guilt `skip` writing a volatile `cycle_overrides` rule expiring tomorrow in `memory_rules.json`).
 - **Context Memory (`MemoryRuleService`):** `GET /api/memory` (with automatic expired volatile purge), `POST /api/memory/rules`, `DELETE /api/memory/rules/{ruleId}`.
-- **n8n Orchestrator Bridge (`N8nGatewayService`):** `POST /api/jarvis/command`, `GET /api/jarvis/chat/history` (shared with `#chatbot`), `POST /api/jarvis/chat`, `POST /api/jarvis/briefing/trigger`.
+- **n8n Orchestrator & Gemini Live Bridge (`N8nGatewayService` & `GeminiLiveService`):** `POST /api/jarvis/command`, `GET /api/jarvis/chat/history` (shared with `#chatbot`), `POST /api/jarvis/chat`, `POST /api/jarvis/briefing/trigger`, `POST /api/jarvis/live/session` (ephemeral Gemini Multimodal Live session & dynamic system instruction), and `POST /api/jarvis/live/tool` (real-time voice function calling into trackers, memory rules, and n8n).
 
 ---
 
@@ -33,7 +33,7 @@ It is designed around two core goals:
 
 `jarvis-dashboard` (`https://jarvis-dashboard.victor-giroud.fr` -> `127.0.0.1:5680`) is a lightweight **Vue.js 3 (Composition API `<script setup>`) + Vite + Tailwind CSS** SPA served by `nginx:1.27-alpine` (~15–25 MB RAM):
 - **100% Schema-Driven Trackers:** Dynamically renders `CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, and `ACTIVITY_LOG` trackers from `GET /api/trackers` without hardcoded tracker IDs.
-- **Shared Multi-Surface Chat & Web Speech Voice:** Shares conversation history with Discord `#chatbot` (`discord_chat_history.json`) and supports browser speech recognition (`SpeechRecognition` / `webkitSpeechRecognition`) + optional TTS (`speechSynthesis`).
+- **Real-Time Bidirectional Voice ("Gemini Live" WebSocket) & Talkie-Walkie Mode:** Streams 16 kHz PCM microphone audio directly to the Gemini Multimodal Live API WebSocket with gapless 24 kHz PCM voice playback, instant user barge-in/interruption, and live function calling (`execute_jarvis_command`, `mutate_tracker_cycle`, `add_tracker_record`, `manage_memory_rule`, `trigger_morning_briefing`), alongside persistent text/dictation chat shared with Discord `#chatbot` (`discord_chat_history.json`).
 - **Installable Android PWA & 1-Tap Voice Shortcut:** Includes `manifest.webmanifest` and `sw.js` with a home-screen shortcut (`/?view=voice&autostart=true`) that opens the voice tab and starts microphone dictation immediately.
 - **Observability / LLMOps & Memory Rules Manager:** Displays real-time API health, active trackers/memory counts, and request latency (`ms`), plus full CRUD over `memory_rules.json`.
 

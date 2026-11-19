@@ -9,6 +9,18 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class GeminiLiveService
 {
+    public const DEFAULT_LIVE_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+
+    public const DEFAULT_API_VERSION = 'v1beta';
+
+    /** @var array<int, string> */
+    private const DEPRECATED_LIVE_MODELS = [
+        'models/gemini-2.0-flash-live-001',
+        'gemini-2.0-flash-live-001',
+        'models/gemini-2.0-flash-exp',
+        'gemini-2.0-flash-exp',
+    ];
+
     public function __construct(
         private readonly TrackerStorageService $trackerStorageService,
         private readonly MemoryRuleService $memoryRuleService,
@@ -30,10 +42,12 @@ class GeminiLiveService
             );
         }
 
-        $model = (string) config('jarvis.gemini_live_model', 'models/gemini-2.0-flash-live-001');
-        if (! str_starts_with($model, 'models/')) {
-            $model = 'models/'.$model;
-        }
+        $apiVersion = $this->normalizeApiVersion(
+            (string) config('jarvis.gemini_live_api_version', self::DEFAULT_API_VERSION)
+        );
+
+        $configuredModel = trim((string) config('jarvis.gemini_live_model', self::DEFAULT_LIVE_MODEL));
+        $model = $this->resolveLiveModel($apiKey, $apiVersion, $configuredModel);
 
         $voiceName = (string) config('jarvis.gemini_live_voice', 'Puck');
         $systemInstruction = $this->buildSystemInstruction();
@@ -44,18 +58,27 @@ class GeminiLiveService
         $tokenType = 'ephemeral_token';
 
         try {
-            $response = Http::timeout(10)
-                ->post("https://generativelanguage.googleapis.com/v1alpha/auth_tokens?key={$apiKey}", [
+            $response = Http::timeout(8)
+                ->post("https://generativelanguage.googleapis.com/{$apiVersion}/auth_tokens?key={$apiKey}", [
                     'uses' => 1,
                     'expireTime' => $expiresAt,
                     'newSessionExpireTime' => Carbon::now()->addMinutes(2)->toIso8601String(),
                 ]);
 
+            if (! $response->successful() && $apiVersion !== 'v1alpha') {
+                $response = Http::timeout(8)
+                    ->post("https://generativelanguage.googleapis.com/v1alpha/auth_tokens?key={$apiKey}", [
+                        'uses' => 1,
+                        'expireTime' => $expiresAt,
+                        'newSessionExpireTime' => Carbon::now()->addMinutes(2)->toIso8601String(),
+                    ]);
+            }
+
             if ($response->successful()) {
                 $payload = $response->json();
                 $tokenName = $payload['name'] ?? $payload['token'] ?? null;
                 if (is_string($tokenName) && $tokenName !== '') {
-                    $wsUrlOrToken = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token='.urlencode($tokenName);
+                    $wsUrlOrToken = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.{$apiVersion}.GenerativeService.BidiGenerateContentConstrained?access_token=".urlencode($tokenName);
                 }
             }
         } catch (\Throwable) {
@@ -64,12 +87,13 @@ class GeminiLiveService
 
         if ($wsUrlOrToken === null) {
             $tokenType = 'direct_ws_url';
-            $wsUrlOrToken = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key='.urlencode($apiKey);
+            $wsUrlOrToken = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.{$apiVersion}.GenerativeService.BidiGenerateContent?key=".urlencode($apiKey);
         }
 
         return [
             'status' => 'ok',
             'model' => $model,
+            'api_version' => $apiVersion,
             'voice_name' => $voiceName,
             'token_type' => $tokenType,
             'ws_url_or_token' => $wsUrlOrToken,
@@ -77,6 +101,82 @@ class GeminiLiveService
             'system_instruction' => $systemInstruction,
             'tools' => $tools,
         ];
+    }
+
+    /**
+     * Ensure the Live API version is strictly v1beta or v1alpha (never v1 or v1main).
+     */
+    public function normalizeApiVersion(string $version): string
+    {
+        $clean = strtolower(trim($version));
+
+        return in_array($clean, ['v1beta', 'v1alpha'], true)
+            ? $clean
+            : self::DEFAULT_API_VERSION;
+    }
+
+    /**
+     * Resolve a valid bidiGenerateContent model, upgrading retired 2.0 live aliases
+     * and verifying against ListModels when available.
+     */
+    public function resolveLiveModel(string $apiKey, string $apiVersion, string $configuredModel): string
+    {
+        $candidate = trim($configuredModel);
+        if ($candidate === '' || in_array($candidate, self::DEPRECATED_LIVE_MODELS, true)) {
+            $candidate = self::DEFAULT_LIVE_MODEL;
+        }
+
+        if (! str_starts_with($candidate, 'models/')) {
+            $candidate = 'models/'.$candidate;
+        }
+
+        try {
+            $response = Http::timeout(5)
+                ->get("https://generativelanguage.googleapis.com/{$apiVersion}/models", [
+                    'key' => $apiKey,
+                ]);
+
+            if ($response->successful()) {
+                $models = $response->json('models');
+                if (is_array($models) && count($models) > 0) {
+                    $bidiModels = [];
+                    foreach ($models as $item) {
+                        if (! is_array($item)) {
+                            continue;
+                        }
+                        $methods = $item['supportedGenerationMethods'] ?? [];
+                        $name = $item['name'] ?? null;
+                        if (is_string($name) && is_array($methods) && in_array('bidiGenerateContent', $methods, true)) {
+                            $bidiModels[] = $name;
+                        }
+                    }
+
+                    if (count($bidiModels) > 0) {
+                        if (in_array($candidate, $bidiModels, true)) {
+                            return $candidate;
+                        }
+
+                        foreach ($bidiModels as $bidiModel) {
+                            if (str_contains($bidiModel, 'gemini-2.5-flash-native-audio')) {
+                                return $bidiModel;
+                            }
+                        }
+
+                        foreach ($bidiModels as $bidiModel) {
+                            if (str_contains($bidiModel, 'native-audio') || str_contains($bidiModel, 'live')) {
+                                return $bidiModel;
+                            }
+                        }
+
+                        return $bidiModels[0];
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            // Keep candidate if ListModels is unreachable
+        }
+
+        return $candidate;
     }
 
     /**

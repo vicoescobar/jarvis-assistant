@@ -64,7 +64,8 @@ services:
       - JARVIS_OWNER_EMAIL=${JARVIS_OWNER_EMAIL:-}
       - JARVIS_OWNER_PASSWORD=${JARVIS_OWNER_PASSWORD:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_LIVE_MODEL=${GEMINI_LIVE_MODEL:-models/gemini-2.0-flash-live-001}
+      - GEMINI_LIVE_MODEL=${GEMINI_LIVE_MODEL:-models/gemini-2.5-flash-native-audio-preview-12-2025}
+      - GEMINI_LIVE_API_VERSION=${GEMINI_LIVE_API_VERSION:-v1beta}
       - N8N_INTERNAL_URL=http://jarvis-n8n:5678
       - USER_DATA_PATH=/var/www/user_data
     volumes:

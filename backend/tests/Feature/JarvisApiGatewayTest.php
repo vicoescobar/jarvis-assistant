@@ -384,13 +384,28 @@ class JarvisApiGatewayTest extends TestCase
         $this->postJson('/api/jarvis/live/session')->assertStatus(503);
 
         // 2. Configured GEMINI_API_KEY mints ephemeral Live session with dynamic context
+        // Also verifies that a deprecated 2.0 live model and invalid API version ("v1main") are sanitized
+        // and resolved against ListModels (bidiGenerateContent) to models/gemini-2.5-flash-native-audio-preview-12-2025
         config([
             'jarvis.gemini_api_key' => 'test_server_side_gemini_key',
             'jarvis.gemini_live_model' => 'models/gemini-2.0-flash-live-001',
+            'jarvis.gemini_live_api_version' => 'v1main',
         ]);
 
         Http::fake([
-            'https://generativelanguage.googleapis.com/v1alpha/auth_tokens*' => Http::response([
+            'https://generativelanguage.googleapis.com/v1beta/models*' => Http::response([
+                'models' => [
+                    [
+                        'name' => 'models/gemini-2.5-flash',
+                        'supportedGenerationMethods' => ['generateContent', 'countTokens'],
+                    ],
+                    [
+                        'name' => 'models/gemini-2.5-flash-native-audio-preview-12-2025',
+                        'supportedGenerationMethods' => ['bidiGenerateContent'],
+                    ],
+                ],
+            ], 200),
+            'https://generativelanguage.googleapis.com/*/auth_tokens*' => Http::response([
                 'name' => 'auth_tokens/ephemeral_test_token_123',
             ], 200),
             'http://jarvis-n8n:5678/webhook/voice-command' => Http::response([
@@ -402,10 +417,12 @@ class JarvisApiGatewayTest extends TestCase
         $sessionResponse = $this->postJson('/api/jarvis/live/session');
         $sessionResponse->assertOk()
             ->assertJsonPath('status', 'ok')
-            ->assertJsonPath('model', 'models/gemini-2.0-flash-live-001')
+            ->assertJsonPath('model', 'models/gemini-2.5-flash-native-audio-preview-12-2025')
+            ->assertJsonPath('api_version', 'v1beta')
             ->assertJsonStructure([
                 'status',
                 'model',
+                'api_version',
                 'voice_name',
                 'ws_url_or_token',
                 'expires_at',
@@ -416,6 +433,7 @@ class JarvisApiGatewayTest extends TestCase
         $this->assertStringContainsString('Cycle Sport', $sessionResponse->json('system_instruction'));
         $this->assertStringContainsString('Surveiller les offres de stage Java', $sessionResponse->json('system_instruction'));
         $this->assertStringContainsString('ephemeral_test_token_123', $sessionResponse->json('ws_url_or_token'));
+        $this->assertStringNotContainsString('v1main', $sessionResponse->json('ws_url_or_token'));
 
         // 3. Execute Live tool: mutate_tracker_cycle
         $this->postJson('/api/jarvis/live/tool', [

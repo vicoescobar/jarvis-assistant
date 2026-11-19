@@ -224,41 +224,41 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- Unauthenticated Login View (16px inputs on mobile so Android never auto-zooms) -->
+  <!-- Unauthenticated Login View -->
   <div
     v-if="!authStore.isAuthenticated"
     class="min-h-[100dvh] bg-graphite-bg text-ink-primary flex items-center justify-center px-5 py-10 safe-top safe-bottom"
   >
-    <div class="enter-fade w-full max-w-[380px] rounded-[16px] bg-graphite-card border hairline-border p-5 sm:p-6 space-y-6">
+    <div class="enter-fade w-full max-w-[400px] rounded-[16px] bg-graphite-card border hairline-border p-6 space-y-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2.5">
-          <span class="h-2 w-2 rounded-full bg-accent"></span>
-          <span class="text-[16px] font-medium text-ink-primary">Jarvis</span>
+          <span class="h-2.5 w-2.5 rounded-full bg-accent"></span>
+          <span class="text-[18px] font-medium text-ink-primary">Jarvis</span>
         </div>
-        <span class="text-xs font-mono meta-mono text-ink-muted">
+        <span class="text-[13px] font-mono meta-mono text-ink-muted">
           API {{ healthStatus.status }}
         </span>
       </div>
 
       <div>
-        <h1 class="text-[22px] sm:text-[24px] leading-[28px] sm:leading-[30px] font-medium text-ink-primary title-display">
+        <h1 class="text-[24px] leading-[30px] font-medium text-ink-primary title-display">
           Poste de commande exécutif
         </h1>
-        <p class="mt-1.5 text-[13px] leading-[20px] text-ink-secondary">
+        <p class="mt-1.5 text-[15px] sm:text-[13px] leading-[22px] sm:leading-[20px] text-ink-secondary">
           Trackers dynamiques, mémoire contextuelle et passerelle vocale n8n
         </p>
       </div>
 
       <div
         v-if="authStore.error"
-        class="rounded-[8px] border border-semantic-negative/40 bg-graphite-deep px-3 py-2 text-xs text-semantic-negative"
+        class="rounded-[8px] border border-semantic-negative/40 bg-graphite-deep px-3.5 py-2.5 text-[14px] sm:text-xs text-semantic-negative"
       >
         {{ authStore.error }}
       </div>
 
       <form class="space-y-4" @submit.prevent="handleLogin">
         <div>
-          <label class="block text-xs font-mono meta-mono text-ink-secondary mb-1.5">
+          <label class="block text-[14px] sm:text-xs font-mono meta-mono text-ink-secondary mb-1.5">
             Email
           </label>
           <input
@@ -267,12 +267,12 @@ onBeforeUnmount(() => {
             required
             autocomplete="username"
             placeholder="owner@example.com"
-            class="h-11 sm:h-10 w-full rounded-[8px] border hairline-border bg-graphite-deep px-3 text-[16px] sm:text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
+            class="h-12 sm:h-10 w-full rounded-[10px] sm:rounded-[8px] border hairline-border bg-graphite-deep px-3.5 text-[16px] sm:text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
           />
         </div>
 
         <div>
-          <label class="block text-xs font-mono meta-mono text-ink-secondary mb-1.5">
+          <label class="block text-[14px] sm:text-xs font-mono meta-mono text-ink-secondary mb-1.5">
             Mot de passe
           </label>
           <input
@@ -281,14 +281,14 @@ onBeforeUnmount(() => {
             required
             autocomplete="current-password"
             placeholder="Mot de passe"
-            class="h-11 sm:h-10 w-full rounded-[8px] border hairline-border bg-graphite-deep px-3 text-[16px] sm:text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
+            class="h-12 sm:h-10 w-full rounded-[10px] sm:rounded-[8px] border hairline-border bg-graphite-deep px-3.5 text-[16px] sm:text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
           />
         </div>
 
         <button
           type="submit"
           :disabled="authStore.loading"
-          class="btn-primary h-11 sm:h-10 w-full rounded-[8px] text-sm font-medium disabled:opacity-40"
+          class="btn-primary h-12 sm:h-10 w-full rounded-[10px] sm:rounded-[8px] text-[16px] sm:text-sm font-medium disabled:opacity-40"
         >
           {{ authStore.loading ? 'Vérification' : 'Ouvrir la session' }}
         </button>
@@ -299,17 +299,17 @@ onBeforeUnmount(() => {
   <!-- Authenticated Full Desktop & Mobile PWA Shell -->
   <div
     v-else
-    class="min-h-[100dvh] bg-graphite-bg text-ink-primary flex flex-col lg:flex-row pb-20 lg:pb-0"
+    class="min-h-screen bg-graphite-bg text-ink-primary flex flex-col lg:flex-row pb-24 lg:pb-0"
   >
     <!-- Mobile Translucent Sticky Top Bar (< lg, Android PWA Header) -->
     <div class="lg:hidden sticky top-0 z-30 material-chrome border-b safe-top">
-      <div class="px-4 h-13 py-2.5 flex items-center justify-between gap-3">
+      <div class="px-4 h-[60px] flex items-center justify-between gap-3">
         <div class="flex items-center gap-2.5">
-          <span class="h-2 w-2 rounded-full bg-accent"></span>
-          <span class="text-[15px] font-medium text-ink-primary">Jarvis</span>
-          <span class="inline-flex items-center gap-1 text-[11px] font-mono meta-mono text-ink-muted ml-1">
+          <span class="h-2.5 w-2.5 rounded-full bg-accent"></span>
+          <span class="text-[17px] font-medium text-ink-primary">Jarvis</span>
+          <span class="inline-flex items-center gap-1.5 text-[13px] font-mono meta-mono text-ink-muted ml-1">
             <span
-              class="h-1.5 w-1.5 rounded-full"
+              class="h-2 w-2 rounded-full"
               :class="
                 healthStatus.status === 'ok'
                   ? 'bg-semantic-positive'
@@ -323,7 +323,7 @@ onBeforeUnmount(() => {
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="btn-secondary h-8 rounded-[8px] px-2.5 text-xs font-medium inline-flex items-center gap-1.5"
+            class="btn-secondary h-10 rounded-[10px] px-3.5 text-[14px] font-medium inline-flex items-center gap-2"
             title="Dictée vocale directe"
             @click="openVoiceShortcut"
           >
@@ -333,7 +333,7 @@ onBeforeUnmount(() => {
 
           <button
             type="button"
-            class="btn-secondary h-8 w-8 rounded-[8px] inline-flex items-center justify-center text-ink-muted"
+            class="btn-secondary h-10 w-10 rounded-[10px] inline-flex items-center justify-center text-ink-secondary"
             title="Fermer la session"
             @click="authStore.logout()"
           >
@@ -368,7 +368,7 @@ onBeforeUnmount(() => {
           </span>
         </div>
 
-        <!-- Primary Navigation Group (24px above label, 8px below, 36px rows, 4px gap) -->
+        <!-- Primary Navigation Group -->
         <div class="mt-6 mb-2 px-2 text-xs text-ink-muted">
           Poste de commande
         </div>
@@ -502,16 +502,16 @@ onBeforeUnmount(() => {
       </div>
     </aside>
 
-    <!-- Main Fluid Content Canvas (capped at 1480px) -->
+    <!-- Main Fluid Content Canvas -->
     <div class="flex-1 min-w-0">
-      <div class="mx-auto max-w-[1480px] px-4 sm:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6">
+      <div class="mx-auto max-w-[1480px] px-4 sm:px-8 py-5 sm:py-6 space-y-5 sm:space-y-6">
         <!-- Top Page Bar -->
-        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b hairline-border">
+        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-4 border-b hairline-border">
           <div>
-            <div class="text-xs font-mono meta-mono text-ink-muted capitalize">
+            <div class="text-[13px] sm:text-xs font-mono meta-mono text-ink-muted capitalize">
               {{ currentPeriodTitle }}
             </div>
-            <h1 class="mt-0.5 text-[22px] sm:text-[28px] font-medium text-ink-primary title-display">
+            <h1 class="mt-0.5 text-[24px] sm:text-[28px] font-medium text-ink-primary title-display">
               {{
                 activeView === 'overview'
                   ? 'Poste de commande et trackers'
@@ -522,11 +522,11 @@ onBeforeUnmount(() => {
             </h1>
           </div>
 
-          <!-- Primary & Secondary actions (full-width 2-col on mobile, inline on sm+) -->
-          <div class="grid grid-cols-2 sm:flex items-center gap-2">
+          <!-- Primary & Secondary actions (48px tall on mobile) -->
+          <div class="grid grid-cols-2 sm:flex items-center gap-2.5">
             <button
               type="button"
-              class="btn-secondary h-10 sm:h-9 rounded-[8px] px-3.5 text-xs font-medium inline-flex items-center justify-center gap-2"
+              class="btn-secondary h-12 sm:h-9 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2"
               @click="refreshCockpitData"
             >
               <AppIcon name="refresh" />
@@ -535,18 +535,18 @@ onBeforeUnmount(() => {
             <button
               type="button"
               :disabled="triggeringBriefing"
-              class="btn-primary h-10 sm:h-9 rounded-[8px] px-4 text-xs font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40"
+              class="btn-primary h-12 sm:h-9 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40"
               @click="handleTriggerBriefing"
             >
               <AppIcon name="play" />
-              <span>{{ triggeringBriefing ? 'Exécution' : 'Lancer le briefing' }}</span>
+              <span>{{ triggeringBriefing ? 'Exécution' : 'Briefing' }}</span>
             </button>
           </div>
         </header>
 
         <div
           v-if="briefingFeedback"
-          class="rounded-[8px] bg-graphite-card border hairline-border px-4 py-2.5 text-xs font-mono meta-mono text-ink-secondary flex items-center justify-between"
+          class="rounded-[10px] bg-graphite-card border hairline-border px-4 py-3 text-[14px] sm:text-xs font-mono meta-mono text-ink-secondary flex items-center justify-between"
         >
           <span>{{ briefingFeedback }}</span>
           <button
@@ -560,57 +560,57 @@ onBeforeUnmount(() => {
 
         <div
           v-if="dashboardError"
-          class="rounded-[8px] border border-semantic-negative/40 bg-graphite-card px-4 py-2.5 text-xs text-semantic-negative"
+          class="rounded-[10px] border border-semantic-negative/40 bg-graphite-card px-4 py-3 text-[14px] sm:text-xs text-semantic-negative"
         >
           {{ dashboardError }}
         </div>
 
         <!-- VIEW 1: OVERVIEW & DYNAMIC TRACKERS -->
         <div v-if="activeView === 'overview'" class="enter-fade space-y-5 sm:space-y-6">
-          <!-- Row 1: 4 Compact Stat Cards (2x2 on mobile, 4 cols on desktop) -->
+          <!-- Row 1: 4 Stat Cards (2x2 on mobile with larger text, 4 cols on desktop) -->
           <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 flex flex-col justify-between h-[104px] sm:h-[112px]">
-              <div class="text-xs text-ink-muted">Trackers actifs</div>
-              <div class="text-[24px] sm:text-[28px] font-medium text-ink-primary figure-tabular">
+            <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 flex flex-col justify-between min-h-[116px] sm:h-[112px]">
+              <div class="text-[13px] sm:text-xs text-ink-muted">Trackers actifs</div>
+              <div class="text-[30px] sm:text-[28px] font-medium text-ink-primary figure-tabular my-1">
                 {{ trackers.length }}
               </div>
-              <div class="text-[11px] sm:text-xs font-mono meta-mono text-ink-secondary truncate">
+              <div class="text-[13px] sm:text-xs font-mono meta-mono text-ink-secondary truncate">
                 {{ cycleTrackers.length }} cycles · {{ collectionTrackers.length }} tables
               </div>
             </div>
 
-            <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 flex flex-col justify-between h-[104px] sm:h-[112px]">
-              <div class="text-xs text-ink-muted">Entrées indexées</div>
-              <div class="text-[24px] sm:text-[28px] font-medium text-ink-primary figure-tabular">
+            <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 flex flex-col justify-between min-h-[116px] sm:h-[112px]">
+              <div class="text-[13px] sm:text-xs text-ink-muted">Entrées indexées</div>
+              <div class="text-[30px] sm:text-[28px] font-medium text-ink-primary figure-tabular my-1">
                 {{ totalRecordsCount }}
               </div>
-              <div class="text-[11px] sm:text-xs font-mono meta-mono text-ink-secondary truncate">
+              <div class="text-[13px] sm:text-xs font-mono meta-mono text-ink-secondary truncate">
                 user_data ({{ healthStatus.user_data_readable ? 'LOCK_EX' : 'hors ligne' }})
               </div>
             </div>
 
-            <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 flex flex-col justify-between h-[104px] sm:h-[112px]">
-              <div class="text-xs text-ink-muted">Règles mémoire</div>
-              <div class="text-[24px] sm:text-[28px] font-medium text-ink-primary figure-tabular">
+            <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 flex flex-col justify-between min-h-[116px] sm:h-[112px]">
+              <div class="text-[13px] sm:text-xs text-ink-muted">Règles mémoire</div>
+              <div class="text-[30px] sm:text-[28px] font-medium text-ink-primary figure-tabular my-1">
                 {{ memoryStats.totalCount }}
               </div>
-              <div class="text-[11px] sm:text-xs font-mono meta-mono text-ink-secondary truncate">
+              <div class="text-[13px] sm:text-xs font-mono meta-mono text-ink-secondary truncate">
                 {{ memoryStats.morningCount }} perm. · {{ memoryStats.customCount }} scopes
               </div>
             </div>
 
-            <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 flex flex-col justify-between h-[104px] sm:h-[112px]">
-              <div class="text-xs text-ink-muted">Latence passerelle</div>
-              <div class="text-[24px] sm:text-[28px] font-medium text-ink-primary figure-tabular">
+            <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 flex flex-col justify-between min-h-[116px] sm:h-[112px]">
+              <div class="text-[13px] sm:text-xs text-ink-muted">Latence passerelle</div>
+              <div class="text-[30px] sm:text-[28px] font-medium text-ink-primary figure-tabular my-1">
                 {{ telemetry.lastLatencyMs !== null ? `${telemetry.lastLatencyMs} ms` : '—' }}
               </div>
-              <div class="text-[11px] sm:text-xs font-mono meta-mono text-ink-secondary truncate">
+              <div class="text-[13px] sm:text-xs font-mono meta-mono text-ink-secondary truncate">
                 {{ latencyDeltaText }}
               </div>
             </div>
           </section>
 
-          <!-- Selected Tracker Fluid Sheet (Modal Bottom Sheet on Mobile, Inline Panel on Desktop) -->
+          <!-- Selected Tracker Detail Section -->
           <DynamicTrackerDetail
             v-if="selectedTrackerId"
             :tracker-id="selectedTrackerId"
@@ -618,22 +618,22 @@ onBeforeUnmount(() => {
             @updated="refreshCockpitData"
           />
 
-          <!-- Row 2: Asymmetric Split (2/3 Dynamic Trackers Deck + 1/3 LLMOps Telemetry & Direct Command) -->
+          <!-- Row 2: Asymmetric Split -->
           <section class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
             <!-- 2/3 Column: Schema-Driven Dynamic Trackers -->
-            <div class="xl:col-span-2 space-y-3 sm:space-y-4">
+            <div class="xl:col-span-2 space-y-4">
               <div class="flex items-baseline justify-between">
-                <h2 class="text-[15px] sm:text-[16px] leading-[22px] font-medium text-ink-primary">
-                  Registre dynamique (trackers_registry.json)
+                <h2 class="text-[18px] sm:text-[16px] leading-[24px] font-medium text-ink-primary">
+                  Registre dynamique
                 </h2>
-                <span class="text-xs font-mono meta-mono text-ink-muted">
+                <span class="text-[13px] sm:text-xs font-mono meta-mono text-ink-muted">
                   {{ trackers.length }} schémas
                 </span>
               </div>
 
               <div
                 v-if="loadingDashboard && trackers.length === 0"
-                class="rounded-[12px] bg-graphite-card border hairline-border p-6 text-xs font-mono meta-mono text-ink-muted"
+                class="rounded-[12px] bg-graphite-card border hairline-border p-6 text-[14px] sm:text-xs font-mono meta-mono text-ink-muted"
               >
                 Synchronisation de trackers_registry.json
               </div>
@@ -642,10 +642,10 @@ onBeforeUnmount(() => {
                 v-else-if="trackers.length === 0"
                 class="rounded-[12px] bg-graphite-card border hairline-border p-5 sm:p-6 space-y-2"
               >
-                <div class="text-sm font-medium text-ink-primary">
+                <div class="text-[16px] sm:text-sm font-medium text-ink-primary">
                   Aucun tracker initialisé dans trackers_registry.json
                 </div>
-                <p class="text-xs text-ink-secondary">
+                <p class="text-[14px] sm:text-xs text-ink-secondary">
                   Envoie une instruction à Jarvis via la barre d’exécution rapide ou dans l’onglet Canal vocal
                 </p>
               </div>
@@ -665,37 +665,37 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <!-- 1/3 Column: Moment 2 — Precision LLMOps Telemetry Chart & Direct Agent Command -->
+            <!-- 1/3 Column: Direct Agent Command & LLMOps Telemetry -->
             <div class="space-y-4">
-              <!-- Direct Orchestrator Command Box first on mobile/column for quick thumb access -->
+              <!-- Direct Orchestrator Command Box -->
               <form
-                class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 space-y-3"
+                class="rounded-[14px] sm:rounded-[12px] bg-graphite-card border hairline-border p-5 space-y-3.5"
                 @submit.prevent="handleQuickCommand"
               >
                 <div class="flex items-center justify-between">
-                  <span class="text-[14px] font-medium text-ink-primary">
-                    Instruction directe (01-voice-agent-core)
+                  <span class="text-[16px] sm:text-[14px] font-medium text-ink-primary">
+                    Instruction directe (Agent 01)
                   </span>
-                  <span class="text-xs font-mono meta-mono text-ink-muted">
+                  <span class="text-[13px] sm:text-xs font-mono meta-mono text-ink-muted">
                     Meta-Tools
                   </span>
                 </div>
 
-                <p class="text-xs text-ink-secondary">
+                <p class="text-[14px] sm:text-xs text-ink-secondary leading-[20px]">
                   Crée ou modifie un tracker, ajoute une tâche Google Tasks ou planifie un événement sans quitter le cockpit
                 </p>
 
-                <div class="flex gap-2">
+                <div class="flex flex-col sm:flex-row gap-2.5">
                   <input
                     v-model="quickCommand"
                     type="text"
                     placeholder="Instruction exécutive"
-                    class="h-10 sm:h-9 min-w-0 flex-1 rounded-[8px] border hairline-border bg-graphite-deep px-3 text-[16px] sm:text-xs text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
+                    class="h-12 sm:h-9 min-w-0 flex-1 rounded-[10px] sm:rounded-[8px] border hairline-border bg-graphite-deep px-3.5 text-[16px] sm:text-xs text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
                   />
                   <button
                     type="submit"
                     :disabled="sendingQuickCommand || !quickCommand.trim()"
-                    class="btn-primary h-10 sm:h-9 rounded-[8px] px-3.5 text-xs font-medium shrink-0 disabled:opacity-40"
+                    class="btn-primary h-12 sm:h-9 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium shrink-0 disabled:opacity-40"
                   >
                     {{ sendingQuickCommand ? 'En cours' : 'Exécuter' }}
                   </button>
@@ -703,28 +703,28 @@ onBeforeUnmount(() => {
 
                 <p
                   v-if="quickCommandFeedback"
-                  class="rounded-[8px] bg-graphite-deep border hairline-border p-3 text-xs font-mono meta-mono text-ink-secondary whitespace-pre-wrap"
+                  class="rounded-[8px] bg-graphite-deep border hairline-border p-3.5 text-[14px] sm:text-xs font-mono meta-mono text-ink-secondary whitespace-pre-wrap"
                 >
                   {{ quickCommandFeedback }}
                 </p>
               </form>
 
-              <!-- LLMOps Latency Chart Card (One accent on latest bar, muted grid, mono labels) -->
-              <div class="rounded-[12px] bg-graphite-card border hairline-border p-4 sm:p-5 space-y-4">
+              <!-- LLMOps Latency Chart Card -->
+              <div class="rounded-[14px] sm:rounded-[12px] bg-graphite-card border hairline-border p-5 space-y-4">
                 <div class="flex items-baseline justify-between">
                   <div>
-                    <div class="text-xs text-ink-muted">Télémétrie LLMOps</div>
-                    <h3 class="mt-0.5 text-[15px] font-medium text-ink-primary">
-                      Temps de réponse API et webhooks n8n
+                    <div class="text-[13px] sm:text-xs text-ink-muted">Télémétrie LLMOps</div>
+                    <h3 class="mt-0.5 text-[16px] sm:text-[15px] font-medium text-ink-primary">
+                      Temps de réponse API et n8n
                     </h3>
                   </div>
-                  <span class="text-xs font-mono meta-mono text-accent">
+                  <span class="text-[14px] sm:text-xs font-mono meta-mono text-accent">
                     {{ telemetry.lastLatencyMs !== null ? `${telemetry.lastLatencyMs} ms` : 'repos' }}
                   </span>
                 </div>
 
                 <!-- Bar Chart on Muted Grid -->
-                <div class="rounded-[8px] bg-graphite-deep border hairline-border p-3.5 space-y-2">
+                <div class="rounded-[10px] sm:rounded-[8px] bg-graphite-deep border hairline-border p-3.5 space-y-2">
                   <div class="h-[96px] sm:h-[112px] flex items-end gap-1.5 border-b hairline-border pb-2">
                     <div
                       v-for="(bar, idx) in latencyBars"
@@ -739,7 +739,7 @@ onBeforeUnmount(() => {
                       ></div>
                     </div>
                   </div>
-                  <div class="flex items-center justify-between text-[11px] font-mono meta-mono text-ink-muted">
+                  <div class="flex items-center justify-between text-[13px] sm:text-[11px] font-mono meta-mono text-ink-muted">
                     <span>12 derniers appels</span>
                     <span class="truncate ml-2">{{ telemetry.lastEndpoint || '/api/trackers' }}</span>
                   </div>
@@ -763,13 +763,13 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Mobile Translucent Bottom Navigation Bar (Apple Material Chrome + safe-area inset) -->
+    <!-- Mobile Translucent Bottom Navigation Bar (68px tall, 13px labels, safe-area inset) -->
     <nav
-      class="lg:hidden fixed bottom-0 inset-x-0 z-30 material-chrome border-t safe-bottom grid grid-cols-3 text-xs"
+      class="lg:hidden fixed bottom-0 inset-x-0 z-30 material-chrome border-t safe-bottom grid grid-cols-3 text-[13px]"
     >
       <button
         type="button"
-        class="pressable h-14 flex flex-col items-center justify-center gap-1"
+        class="pressable h-[64px] flex flex-col items-center justify-center gap-1.5"
         :class="activeView === 'overview' ? 'text-ink-primary font-medium' : 'text-ink-muted'"
         @click="activeView = 'overview'"
       >
@@ -778,7 +778,7 @@ onBeforeUnmount(() => {
       </button>
       <button
         type="button"
-        class="pressable h-14 flex flex-col items-center justify-center gap-1"
+        class="pressable h-[64px] flex flex-col items-center justify-center gap-1.5"
         :class="activeView === 'voice' ? 'text-ink-primary font-medium' : 'text-ink-muted'"
         @click="
           autostartMic = false;
@@ -790,7 +790,7 @@ onBeforeUnmount(() => {
       </button>
       <button
         type="button"
-        class="pressable h-14 flex flex-col items-center justify-center gap-1"
+        class="pressable h-[64px] flex flex-col items-center justify-center gap-1.5"
         :class="activeView === 'memory' ? 'text-ink-primary font-medium' : 'text-ink-muted'"
         @click="activeView = 'memory'"
       >

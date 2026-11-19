@@ -1,73 +1,188 @@
-# 🧠 Jarvis Assistant — ADHD Executive Prosthesis & AI Orchestrator
+# Jarvis Assistant — Event-Driven AI Orchestrator & Schema-less Personal Cockpit
 
-Jarvis is an event-driven personal assistant and executive function prosthesis built with **n8n**, **Google Gemini (`gemini-3.5-flash-lite`)**, **Laravel 11 (PHP 8.3 REST API Gateway)**, **Vue.js 3 + Tailwind CSS (Cockpit & Android PWA)**, **Docker Compose**, and **GitHub Actions CI/CD**.
+> **Plateforme d'orchestration IA auto-hébergée, extensible à chaud par commandes vocales et textuelles (*Schema-less Dynamic Trackers Engine*), combinant workflows événementiels (`n8n`), passerelle REST (`Laravel 11`), streaming vocal bidirectionnel temps réel (`Gemini Live WebSocket`) et cockpit Web/PWA (`Vue.js 3`).**
 
-It is designed around two core goals:
-1. **Clinical ADHD Cognitive Accessibility & Direct Executive Tone:** Reduce cognitive friction (< 2 minutes per interaction) through architectural noise filtering, proactive orchestration, and a crisp, factual **Chief-of-Staff executive tone** (zero patronizing/coddling language, zero Night Amnesty rollovers, full visibility on all active Google Tasks `@default` including undated ones, and 45-min timed Ableton Live sandboxes).
-2. **100% Generic & Open-Source Architecture:** Zero hardcoded personal trackers or secrets in Git. All life/work trackers (`CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, `ACTIVITY_LOG`), prompt-driven morning `tracker_mutations`, monthly memory archives (`archive_<tracker_id>.json`), and contextual memory scopes are created and mutated dynamically at runtime in an isolated `/home/node/user_data/` volume, alongside unified **Google Workspace** (Gmail, Calendar, Tasks, Drive, Docs, Sheets) connectivity.
-
----
-
-## 🏗️ System Architecture & Workflows
-
-| Workflow File | ID | Trigger | Description |
-| :--- | :--- | :--- | :--- |
-| `workflows/01-voice-agent-core.json` | `01-voice-agent-core` | `POST /webhook/voice-command` | Core Voice AI Agent (direct executive tone) equipped with the **4 Universal Meta-Tools** (`create_or_update_tracker_schema`, `mutate_tracker_record`, `query_tracker_records`, `update_memory_rule`) and **17 Native Google Workspace Tools** across **Google Tasks** (`@default`), **Google Calendar** (`primary`), **Gmail** (search, read, create draft), **Google Drive** (search, create text file), **Google Docs** (read, create, append), and **Google Sheets** (read, append), logging voice commands to `#logs-voix` (`DISCORD_VOICE_LOG_WEBHOOK_URL`). |
-| `workflows/02-morning-briefing.json` | `02-morning-briefing` | Cron `08:30` (`Europe/Paris`) & `POST /webhook/morning-briefing` | Aggregates **Google Calendar** (`primary`), **Gmail** (24h messages), **Google Tasks** (`@default` including undated tasks), and `/home/node/user_data/` trackers; executes prompt-driven `tracker_mutations` with same-day idempotency, dispatches a 5-section executive briefing to `#briefing` (`DISCORD_BRIEFING_WEBHOOK_URL`), and creates urgent email tasks in Google Tasks. |
-| `workflows/03-memory-compression.json` | `03-memory-compression` | Cron `03:00` 1st of month (`0 3 1 * *`) & `POST /webhook/compress-memory` | Purges expired volatile memory rules, summarizes tracker records older than 30 days (while preserving open/pending `COLLECTION_TABLE` quotes/leads) via `gemini-3.5-flash-lite` into `/home/node/user_data/archive_<tracker_id>.json`, and trims active `data_<tracker_id>.json` files. |
-| `workflows/04-discord-chatbot.json` | `04-discord-chatbot` | `POST /webhook/discord-chat` (via `jarvis-discord-bridge`) | Persistent multi-turn Discord Chatbot (`#chatbot`) supporting **text messages** and **audio voice notes** (`.ogg`, `.mp3`, `.wav`, `.m4a` transcribed via Gemini `gemini-3.5-flash-lite`), backed by `/home/node/user_data/discord_chat_history.json` (sliding window + `/reset`) and delegating operational actions to `01-voice-agent-core` via `execute_jarvis_action`. |
+[![CI/CD Deploy](https://img.shields.io/badge/CI%2FCD-GitHub_Actions_SSH-2088FF?logo=githubactions&logoColor=white)](.github/workflows/deploy.yml)
+[![Orchestrator](https://img.shields.io/badge/Orchestrator-n8n_Self--Hosted-EA4B71?logo=n8n&logoColor=white)](workflows/)
+[![Backend](https://img.shields.io/badge/API_Gateway-Laravel_11_%2F_PHP_8.3-FF2D20?logo=laravel&logoColor=white)](backend/)
+[![Frontend](https://img.shields.io/badge/Cockpit_%26_PWA-Vue.js_3_%2F_Vite-4FC08D?logo=vuedotjs&logoColor=white)](frontend/)
+[![AI Engine](https://img.shields.io/badge/LLM_%26_Voice-Google_Gemini_Flash_%26_Live_API-4285F4?logo=google&logoColor=white)](backend/app/Services/GeminiLiveService.php)
 
 ---
 
-## 🛡️ REST API Gateway (`backend/` — Laravel 11 & Sanctum)
+## 1. Pitch & Proposition de valeur
 
-`jarvis-backend` (`https://jarvis-api.victor-giroud.fr` -> `127.0.0.1:5679`) is a low-RAM (< 80 MB idle) **PHP 8.3-FPM (`ondemand`) + Nginx Alpine** container running as UID/GID `1000:1000`:
-- **Authentication (`Laravel Sanctum` + SQLite):** `GET /api/health`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, seeded idempotently via `php artisan jarvis:seed-owner`.
-- **Dynamic Trackers (`TrackerStorageService` with `LOCK_EX`):** `GET /api/trackers`, `GET /api/trackers/{trackerId}` (`?include_archive=true`), `POST /api/trackers/{trackerId}/records`, `PATCH /api/trackers/{trackerId}/records/{recordId}`, `DELETE /api/trackers/{trackerId}/records/{recordId}`, and `POST /api/trackers/{trackerId}/cycle` (`advance`, `set`, and zero-guilt `skip` writing a volatile `cycle_overrides` rule expiring tomorrow in `memory_rules.json`).
-- **Context Memory (`MemoryRuleService`):** `GET /api/memory` (with automatic expired volatile purge), `POST /api/memory/rules`, `DELETE /api/memory/rules/{ruleId}`.
-- **n8n Orchestrator & Gemini Live Bridge (`N8nGatewayService` & `GeminiLiveService`):** `POST /api/jarvis/command`, `GET /api/jarvis/chat/history` (shared with `#chatbot`), `POST /api/jarvis/chat`, `POST /api/jarvis/briefing/trigger`, `POST /api/jarvis/live/session` (ephemeral Gemini Multimodal Live session & dynamic system instruction), and `POST /api/jarvis/live/tool` (real-time voice function calling into trackers, memory rules, and n8n).
+Les outils de productivité classiques imposent des schémas rigides (bases de données figées, formulaires complexes) qui multiplient la friction au quotidien. À l'inverse, les assistants vocaux grand public manquent de mémoire contextuelle durable et d'intégration profonde avec les flux de travail d'un développeur.
 
----
+**Jarvis Assistant** résout ce compromis grâce à une architecture **100 % générique et pilotée par schémas dynamiques** :
+- **Zéro schéma codé en dur :** L'utilisateur crée, modifie et interroge ses propres outils de suivi (cycles récurrents, tables de suivi/CRM, journaux d'activité) et ses règles métier **directement à la voix ou par message**, sans jamais modifier le code source ni redéployer l'application.
+- **Interaction en moins de 2 minutes :** Agrégation proactive multi-sources (Google Calendar, Gmail, Google Tasks, Drive/Docs/Sheets), briefings matinaux automatisés sur Discord, et cockpit Web/PWA mobile avec mode vocal temps réel (*barge-in*).
+- **Confidentialité & Reproductibilité Open-Source :** Le moteur public est intégralement découplé des données d'exécution privées (`user_data/`), permettant à n'importe quel développeur d'auto-héberger sa propre instance sur un simple VPS Linux.
 
-## 💻 Dynamic Vue.js 3 Cockpit & Android PWA (`frontend/`)
-
-`jarvis-dashboard` (`https://jarvis-dashboard.victor-giroud.fr` -> `127.0.0.1:5680`) is a lightweight **Vue.js 3 (Composition API `<script setup>`) + Vite + Tailwind CSS** SPA served by `nginx:1.27-alpine` (~15–25 MB RAM):
-- **100% Schema-Driven Trackers:** Dynamically renders `CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, and `ACTIVITY_LOG` trackers from `GET /api/trackers` without hardcoded tracker IDs.
-- **Real-Time Bidirectional Voice ("Gemini Live" WebSocket) & Talkie-Walkie Mode:** Streams 16 kHz PCM microphone audio directly to the Gemini Multimodal Live API WebSocket with gapless 24 kHz PCM voice playback, instant user barge-in/interruption, and live function calling (`execute_jarvis_command`, `mutate_tracker_cycle`, `add_tracker_record`, `manage_memory_rule`, `trigger_morning_briefing`), alongside persistent text/dictation chat shared with Discord `#chatbot` (`discord_chat_history.json`).
-- **Installable Android PWA & 1-Tap Voice Shortcut:** Includes `manifest.webmanifest` and `sw.js` with a home-screen shortcut (`/?view=voice&autostart=true`) that opens the voice tab and starts microphone dictation immediately.
-- **Observability / LLMOps & Memory Rules Manager:** Displays real-time API health, active trackers/memory counts, and request latency (`ms`), plus full CRUD over `memory_rules.json`.
+👉 **[Consulter l'étude d'architecture complète (`docs/ARCHITECTURE_DEEP_DIVE.md`)](docs/ARCHITECTURE_DEEP_DIVE.md)**
 
 ---
 
-## 🔮 Future Backlog & Bonus Features
-- **Real-time Discord Voice Channel (RTC):** Bidirectional real-time voice conversation in a Discord voice channel (Bonus backlog item).
+## 2. Points forts d'ingénierie (Architecture Highlights)
+
+### A. Moteur de Trackers Dynamiques Sans Schéma Figé (*Schema-less Meta-Tools*)
+Plutôt que de créer une table SQL par cas d'usage, l'agent IA dispose de **4 méta-outils universels** (`create_or_update_tracker_schema`, `mutate_tracker_record`, `query_tracker_records`, `update_memory_rule`) opérant sur un volume JSON isolé (`user_data/`) :
+- **`CYCLE_STATE_MACHINE`** : Machines à états cycliques (ex. rotation d'entraînement sportif, programme de révision) avec avancement idempotent et report sans perte d'état (*skip* générant une règle volatile d'expiration automatique).
+- **`COLLECTION_TABLE`** : Tables structurées à typage dynamique (ex. CRM freelance, suivi de candidatures, devis) avec filtrage et préservation des entrées actives lors des archivages.
+- **`ACTIVITY_LOG`** : Journaux horodatés (ex. sessions de veille, heures de pratique, lectures) compressés mensuellement par LLM au-delà de 30 jours (`archive_<id>.json`).
+
+### B. Passerelle API REST Low-RAM & Streaming Vocal Temps Réel (`Laravel 11` + `Gemini Live`)
+- **Empreinte mémoire optimisée (< 80 Mo RAM au repos) :** Conteneur Alpine combinant **PHP 8.3-FPM (`pm = ondemand`)**, **Nginx** et **SQLite** (authentification **Laravel Sanctum** sans serveur SGBD lourd).
+- **Concurrence fichier inter-conteneurs :** Partage du volume `user_data` sous UID/GID `1000:1000` entre `jarvis-n8n` et `jarvis-backend` avec écritures atomiques (`LOCK_EX`) et validation stricte `snake_case` anti-*path traversal*.
+- **Sécurité WebSocket Gemini Live :** Émission côté serveur de sessions éphémères (`POST /api/jarvis/live/session`) avec auto-découverte des modèles supportant `bidiGenerateContent` et injection à chaud du contexte utilisateur, sans jamais exposer `GEMINI_API_KEY` dans le bundle frontend.
+
+### C. Cockpit Web & PWA Mobile Auto-Générée (`Vue.js 3` + `Tailwind CSS`)
+- **Rendu UI 100 % Schema-Driven :** Les composants Vue inspectent `trackers_registry.json` via l'API et génèrent dynamiquement les séquenceurs de cycles, les formulaires typés et les vues tabulaires/cartes mobiles.
+- **Audio Bidirectionnel WebAudio (16 kHz / 24 kHz PCM) :** Capture micro via `AudioWorkletNode`, lecture audio *gapless*, détection d'interruption vocale instantanée (*barge-in*), et exécution d'outils en temps réel (`POST /api/jarvis/live/tool`).
+- **Raccourci PWA Android 1-Tap (`/?view=voice&autostart=true`) :** Ouvre directement le canal vocal depuis l'écran d'accueil mobile et active le microphone instantanément.
+
+### D. DevOps, CI/CD & *Agentic Context Engineering*
+- **Isolation Réseau & SSL :** Les 3 services exposés (`jarvis-n8n`, `jarvis-backend`, `jarvis-dashboard`) écoutent exclusivement sur l'interface loopback `127.0.0.1` (`5678`, `5679`, `5680`) derrière un Reverse Proxy Nginx/CloudPanel avec terminaison SSL Let's Encrypt.
+- **Déploiement Continu (GitHub Actions SSH) :** Chaque `push` sur `main` met à jour les conteneurs, exécute les migrations SQLite, résout dynamiquement les identifiants de credentials n8n et réimporte les workflows JSON versionnés.
+- **Gouvernance IA & Sécurité Déterministe :** Spécifications modulaires dans `.agents/skills/` et hook de pré-commit `.agents/hooks/pre-commit-secrets.sh` bloquant toute clé API ou donnée personnelle avant chaque commit.
 
 ---
 
-## 📂 Repository Structure
+## 3. Schéma d'Architecture Global
 
-```text
-├── .agents/
-│   ├── hooks/pre-commit-secrets.sh          # Blocks leaked API keys/webhooks & validates workflow JSONs
-│   └── skills/                              # Domain & Sprint specifications (Dual-Loop Architecture)
-├── .github/workflows/deploy.yml             # Automated SSH deployment & workflow import to OVH VPS
-├── backend/                                 # Laravel 11 REST API Gateway (PHP 8.3, Sanctum, SQLite)
-├── docs/achitecture.mmd                     # Mermaid system architecture diagram
-├── frontend/                                # Vue.js 3 + Tailwind CSS Cockpit & Android PWA (127.0.0.1:5680)
-├── infra/
-│   ├── docker-compose.yml                   # Production stack (jarvis-n8n, jarvis-discord-bridge, jarvis-backend, jarvis-dashboard)
-│   └── .env.exemple                         # Environment template
-├── scripts/discord-bridge/                  # Discord #chatbot Gateway bridge (Text + Audio)
-└── workflows/                               # Versioned, sanitized n8n workflows
+> Source du diagramme : [`docs/achitecture.mmd`](docs/achitecture.mmd)
+
+```mermaid
+flowchart TB
+    classDef user fill:#4F46E5,stroke:#312E81,stroke-width:2px,color:#fff
+    classDef google fill:#0F9D58,stroke:#0B8043,stroke-width:2px,color:#fff
+    classDef vps fill:#EA580C,stroke:#9A3412,stroke-width:2px,color:#fff
+
+    subgraph CLIENT ["📱 Points de contact Mobile & Desktop"]
+        VOICE["🎙️ Assistant Vocal Mobile / Webhooks"]:::user
+        CHAT["💬 Discord (#briefing, #logs-voix, #chatbot)"]:::user
+        CAL["📅 Agenda & Google Tasks"]:::user
+        PWA["📲 Android PWA / Desktop Cockpit<br/>(?view=voice&autostart=true)"]:::user
+    end
+
+    subgraph CLOUD ["☁️ Écosystème Google Workspace & Sources Externes"]
+        GMAIL["📧 Gmail & Boîtes Externes"]:::google
+        GCAL["📅 Google Calendar (primary)"]:::google
+        GTASKS["✅ Google Tasks (@default)"]:::google
+        GDRIVE["📂 Google Drive, Docs & Sheets"]:::google
+    end
+
+    subgraph VPS ["🖥️ VPS Linux (CloudPanel Nginx SSL + Docker Compose + CI/CD)"]
+        N8N["⚙️ jarvis-n8n (Workflows 01, 02, 03, 04)<br/>127.0.0.1:5678"]:::vps
+        API["🛡️ jarvis-backend (Laravel 11 / PHP 8.3 / Sanctum)<br/>127.0.0.1:5679"]:::vps
+        DASH["💻 jarvis-dashboard (Vue.js 3 + Tailwind + Nginx)<br/>127.0.0.1:5680"]:::vps
+        DBRIDGE["🤖 jarvis-discord-bridge (#chatbot Text + Audio)"]:::vps
+        USERDATA["🗄️ Volume user_data (Trackers, Memory, Chat History & Archives 30j)"]:::vps
+        SQLITE["🔐 Volume backend_data (SQLite Sanctum Auth)"]:::vps
+        GEMINI["🧠 API Google Gemini (Flash & Live WebSocket)"]:::vps
+    end
+
+    VOICE -->|"POST /webhook/voice-command"| N8N
+    CHAT <-->|"Messages & Notes Vocales #chatbot"| DBRIDGE
+    DBRIDGE <-->|"POST /webhook/discord-chat"| N8N
+    PWA <-->|"HTTPS SPA & Service Worker"| DASH
+    PWA <-->|"REST API + Live Session/Tools (Bearer Sanctum)"| API
+    PWA <-->|"Bidi WebSocket PCM 16kHz/24kHz (Gemini Live)"| GEMINI
+    API <-->|"Auth & Tokens"| SQLITE
+    API <-->|"Lecture / Écriture atomique LOCK_EX"| USERDATA
+    API <-->|"Proxy interne /webhook/*"| N8N
+    GTASKS <-->|"CRUD & Déduplication"| N8N
+    GMAIL <-->|"Recherche, Brouillons & Filtrage 24h"| N8N
+    GCAL <-->|"CRUD & Événements du jour"| N8N
+    CAL <-->|"Synchronisation"| GCAL
+    GDRIVE <-->|"Docs, Sheets & Drive"| N8N
+    N8N <-->|"Lecture / Écriture / Compression 30j"| USERDATA
+    N8N <-->|"Orchestration, Transcription Audio & Synthèse"| GEMINI
+    N8N -->|"Webhooks #briefing & #logs-voix"| CHAT
 ```
 
 ---
 
-## 🚀 Deployment & Security
+## 4. Stack Technique & Arborescence du Monorepo
 
-- **CI/CD Pipeline:** Every push to `main` runs `.github/workflows/deploy.yml`, which connects to the OVH VPS via SSH (`jarvis` user), initializes `/home/jarvis/app/infra/user_data/` (`1000:1000` UID), updates containers via `docker compose`, and imports `/workflows/*.json` into `jarvis-n8n`.
-- **Pre-Commit Security Verification:**
-  ```bash
-  ./.agents/hooks/pre-commit-secrets.sh
-  ```
+| Couche | Technologies | Rôle |
+| :--- | :--- | :--- |
+| **Orchestration IA** | `n8n` (Docker), `JavaScript (Node.js)` | Exécution des 4 workflows événementiels, connecteurs OAuth2 Google Workspace et méta-outils JSON |
+| **Modèles LLM & Voix** | `Gemini Flash`, `Gemini 2.5 Flash Native Audio (Live API)` | Function calling structuré, synthèse matinale, compression mémoire 30j et streaming vocal WebSocket |
+| **API Gateway** | `PHP 8.3-FPM (ondemand)`, `Laravel 11`, `Sanctum`, `SQLite`, `PHPUnit` | Authentification Bearer, CRUD atomique `LOCK_EX` sur `user_data/`, proxy n8n et sessions éphémères Gemini Live |
+| **Cockpit & PWA** | `Vue.js 3 (<script setup>)`, `Vite 6`, `Tailwind CSS`, `WebAudio API` | Interface responsive pilotée par schémas, télémétrie LLMOps, client WebSocket PCM 16/24 kHz et Service Worker PWA |
+| **Passerelle Discord** | `Node.js 20 Alpine`, `discord.js v14` | Écoute temps réel du salon `#chatbot` (texte + notes vocales `.ogg`/`.mp3`/`.m4a`) vers n8n |
+| **Infra & CI/CD** | `Docker Compose`, `Nginx Alpine`, `CloudPanel SSL`, `GitHub Actions` | Conteneurisation isolée (`1000:1000`), reverse proxy local `127.0.0.1` et déploiement SSH automatisé |
 
+```text
+├── .agents/
+│   ├── hooks/pre-commit-secrets.sh          # Hook déterministe anti-secrets & validation syntaxique JSON
+│   └── skills/                              # Spécifications d'architecture & garde-fous UX (Dual-Loop Workflow)
+├── .github/workflows/deploy.yml             # Pipeline CI/CD SSH (build Docker, migrations Laravel, import n8n)
+├── backend/                                 # API Gateway Laravel 11 (Controllers, Services, Sanctum, Tests PHPUnit)
+├── docs/
+│   ├── achitecture.mmd                      # Source Mermaid du schéma d'architecture
+│   └── ARCHITECTURE_DEEP_DIVE.md            # Documentation technique exhaustive & étude de cas portfolio
+├── frontend/                                # Cockpit Vue.js 3 + Tailwind CSS + PWA Mobile & WebAudio Live
+├── infra/
+│   ├── docker-compose.yml                   # Définition des 4 conteneurs de production (n8n, bridge, backend, dashboard)
+│   └── .env.exemple                         # Modèle de variables d'environnement sanitisé
+├── scripts/discord-bridge/                  # Micro-service Node.js discord.js v14 (Texte & Audio -> n8n)
+└── workflows/                               # Workflows n8n versionnés et sanitisés
+    ├── 01-voice-agent-core.json             # Agent principal (4 Méta-Outils + 17 outils Google Workspace)
+    ├── 02-morning-briefing.json             # Briefing matinal 08:30 (Agenda, Mails 24h, Tasks, Mutations Trackers)
+    ├── 03-memory-compression.json           # Compression mensuelle des journaux > 30j & purge des règles expirées
+    └── 04-discord-chatbot.json              # Chatbot persistant multi-tours (Texte + Transcription Audio)
+```
+
+---
+
+## 5. Installation Rapide (Self-Hosting Quick Start)
+
+### Prérequis
+- Docker & Docker Compose v2
+- Un nom de domaine (ou sous-domaines) pointant vers un Reverse Proxy local (`127.0.0.1:5678`, `127.0.0.1:5679`, `127.0.0.1:5680`)
+- Une clé API Google Gemini (`GEMINI_API_KEY`)
+
+### Déploiement en 4 commandes
+
+```bash
+# 1. Cloner le dépôt et préparer les variables d'environnement
+git clone https://github.com/vicoescobar/jarvis-assistant.git
+cd jarvis-assistant
+cp infra/.env.exemple .env
+
+# 2. Initialiser les volumes persistants avec l'UID 1000:1000 (partagé entre n8n et Laravel)
+mkdir -p infra/n8n_data infra/user_data infra/backend_data
+echo '{"trackers":{}}' > infra/user_data/trackers_registry.json
+echo '{"morning_rules":[],"custom_scopes":{}}' > infra/user_data/memory_rules.json
+echo '{"messages":[]}' > infra/user_data/discord_chat_history.json
+touch infra/backend_data/database.sqlite
+sudo chown -R 1000:1000 infra/n8n_data infra/user_data infra/backend_data
+
+# 3. Démarrer la stack complète et initialiser la base d'authentification Sanctum
+docker compose --env-file .env -f infra/docker-compose.yml up -d --build
+docker exec jarvis-backend php artisan migrate --force
+docker exec jarvis-backend php artisan jarvis:seed-owner
+
+# 4. Importer et activer les workflows dans n8n
+docker exec -u node jarvis-n8n n8n import:workflow --separate --input=/home/node/workflows/
+docker exec -u node jarvis-n8n n8n update:workflow --all --active=true
+```
+
+### Vérification des tests & de la sécurité avant commit
+```bash
+# Exécuter la suite de tests Feature PHPUnit (API Gateway, Trackers, Mémoire, Gemini Live)
+cd backend && php artisan test
+
+# Vérifier l'absence de secrets et la validité JSON des workflows n8n
+./.agents/hooks/pre-commit-secrets.sh
+```
+
+---
+
+## 6. Documentation Technique Approfondie
+
+Pour explorer en détail les contrats de données JSON (`user_data/`), le fonctionnement interne des 4 méta-outils, le pipeline audio PCM 16/24 kHz de Gemini Live, la gestion de la concurrence `LOCK_EX` et la fiche synthèse d'ingénierie :
+
+📖 **[Lire `docs/ARCHITECTURE_DEEP_DIVE.md` — Architecture Deep Dive & Portfolio Case Study](docs/ARCHITECTURE_DEEP_DIVE.md)**

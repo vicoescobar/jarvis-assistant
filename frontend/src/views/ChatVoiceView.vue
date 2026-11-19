@@ -144,60 +144,60 @@ onMounted(async () => {
   if (props.autostartMic) {
     speakAloud.value = true
     toggleMicrophone()
-  } else {
-    inputEl.value?.focus()
   }
 })
 </script>
 
 <template>
-  <section class="enter-fade rounded-[16px] bg-graphite-card border hairline-border flex flex-col h-[calc(100vh-148px)] min-h-[520px]">
+  <section class="enter-fade rounded-[16px] bg-graphite-card border hairline-border flex flex-col h-[calc(100dvh-212px)] lg:h-[calc(100dvh-148px)] min-h-[380px]">
     <!-- Top instrument header -->
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b hairline-border px-5 py-3.5">
-      <div class="flex items-center gap-2.5">
+    <div class="flex flex-wrap items-center justify-between gap-2.5 border-b hairline-border px-4 sm:px-5 py-3">
+      <div class="flex items-center gap-2.5 min-w-0">
         <span
-          class="h-2 w-2 rounded-full"
+          class="h-2 w-2 rounded-full shrink-0"
           :class="listening ? 'bg-accent' : 'bg-semantic-positive'"
         ></span>
-        <div>
-          <h2 class="text-[15px] leading-[20px] font-medium text-ink-primary">
+        <div class="min-w-0">
+          <h2 class="text-[14px] sm:text-[15px] leading-[20px] font-medium text-ink-primary truncate">
             Canal direct Jarvis · Discord #chatbot
           </h2>
-          <p class="text-xs text-ink-muted font-mono meta-mono">
+          <p class="text-xs text-ink-muted font-mono meta-mono truncate">
             discord_chat_history.json · {{ messages.length }} messages
           </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 shrink-0">
         <span
           v-if="telemetry.lastLatencyMs !== null"
-          class="text-xs font-mono meta-mono text-ink-muted"
+          class="hidden sm:inline text-xs font-mono meta-mono text-ink-muted"
         >
           {{ telemetry.lastLatencyMs }} ms
         </span>
 
         <button
           type="button"
-          class="pressable h-8 rounded-[8px] px-2.5 text-xs inline-flex items-center gap-1.5 border"
+          class="pressable h-9 sm:h-8 rounded-[8px] px-2.5 text-xs inline-flex items-center gap-1.5 border"
           :class="
             speakAloud
               ? 'surface-raised text-ink-primary'
               : 'bg-graphite-deep hairline-border text-ink-muted hover:text-ink-secondary'
           "
+          title="Activer ou couper la lecture vocale"
           @click="speakAloud = !speakAloud"
         >
           <AppIcon name="volume" />
-          <span>Lecture vocale</span>
+          <span class="hidden sm:inline">Lecture vocale</span>
         </button>
 
         <button
           type="button"
-          class="btn-secondary h-8 rounded-[8px] px-2.5 text-xs inline-flex items-center gap-1.5"
+          class="btn-secondary h-9 sm:h-8 rounded-[8px] px-2.5 text-xs inline-flex items-center gap-1.5"
+          title="Synchroniser l'historique"
           @click="loadHistory"
         >
           <AppIcon name="refresh" />
-          <span>Synchroniser</span>
+          <span class="hidden sm:inline">Synchroniser</span>
         </button>
       </div>
     </div>
@@ -205,7 +205,7 @@ onMounted(async () => {
     <!-- Conversation feed -->
     <div
       ref="chatContainer"
-      class="flex-1 overflow-y-auto p-5 space-y-3"
+      class="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-3"
     >
       <div v-if="loading" class="text-xs font-mono meta-mono text-ink-muted">
         Lecture de discord_chat_history.json
@@ -225,7 +225,7 @@ onMounted(async () => {
         :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
       >
         <div
-          class="max-w-[84%] sm:max-w-[72%] rounded-[12px] px-4 py-3 text-[14px] leading-[20px] whitespace-pre-wrap"
+          class="max-w-[90%] sm:max-w-[72%] rounded-[12px] px-3.5 sm:px-4 py-2.5 sm:py-3 text-[14px] leading-[20px] whitespace-pre-wrap break-words"
           :class="
             msg.role === 'user'
               ? 'surface-raised text-ink-primary'
@@ -250,19 +250,19 @@ onMounted(async () => {
 
     <div
       v-if="error"
-      class="mx-5 mb-2 rounded-[8px] border border-semantic-negative/40 bg-graphite-deep px-3 py-2 text-xs text-semantic-negative"
+      class="mx-4 sm:mx-5 mb-2 rounded-[8px] border border-semantic-negative/40 bg-graphite-deep px-3 py-2 text-xs text-semantic-negative"
     >
       {{ error }}
     </div>
 
-    <!-- Bottom command bar -->
+    <!-- Bottom command bar: 16px input font on mobile to prevent Android/iOS auto-zoom, 44px touch targets -->
     <form
-      class="border-t hairline-border p-4 flex items-center gap-2 bg-graphite-deep/40 rounded-b-[16px]"
+      class="border-t hairline-border p-3 sm:p-4 flex items-center gap-2 bg-graphite-deep/40 rounded-b-[16px]"
       @submit.prevent="handleSendMessage"
     >
       <button
         type="button"
-        class="pressable h-10 rounded-[8px] px-3.5 text-xs font-medium inline-flex items-center gap-2 border"
+        class="pressable h-11 sm:h-10 rounded-[8px] px-3 sm:px-3.5 text-xs font-medium inline-flex items-center gap-2 border shrink-0"
         :class="
           listening
             ? 'bg-accent text-[#141415] border-accent'
@@ -272,7 +272,7 @@ onMounted(async () => {
         @click="toggleMicrophone"
       >
         <AppIcon name="mic" />
-        <span>{{ listening ? 'Écoute active' : 'Voix' }}</span>
+        <span>{{ listening ? 'Écoute' : 'Voix' }}</span>
       </button>
 
       <input
@@ -280,16 +280,16 @@ onMounted(async () => {
         v-model="inputText"
         type="text"
         placeholder="Instruction pour Jarvis"
-        class="h-10 flex-1 rounded-[8px] border hairline-border bg-graphite-deep px-3.5 text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
+        class="h-11 sm:h-10 min-w-0 flex-1 rounded-[8px] border hairline-border bg-graphite-deep px-3 text-[16px] sm:text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
       />
 
       <button
         type="submit"
         :disabled="sending || !inputText.trim()"
-        class="btn-primary h-10 rounded-[8px] px-4 text-xs font-medium inline-flex items-center gap-2 disabled:opacity-40"
+        class="btn-primary h-11 sm:h-10 rounded-[8px] px-3.5 sm:px-4 text-xs font-medium inline-flex items-center gap-2 shrink-0 disabled:opacity-40"
       >
         <span>Envoyer</span>
-        <kbd class="keycap bg-[#141415]/15 border-[#141415]/20 text-[#141415]">↵</kbd>
+        <kbd class="keycap hidden sm:inline-flex bg-[#141415]/15 border-[#141415]/20 text-[#141415]">↵</kbd>
       </button>
     </form>
   </section>

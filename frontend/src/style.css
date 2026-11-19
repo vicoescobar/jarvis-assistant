@@ -7,14 +7,27 @@
     font: 100%/1.5 -apple-system, BlinkMacSystemFont, "Geist", "Inter", system-ui, sans-serif;
     font-optical-sizing: auto;
     color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
   }
 
+  html,
   body {
     background-color: #141415;
     color: #ededed;
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
+    touch-action: manipulation;
+    overscroll-behavior-y: none;
   }
+}
+
+/* Safe area helpers for Android gesture bar & notches */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Hairline border and subtle top specular highlight from unslop & apple-design */
@@ -77,10 +90,10 @@
 
 /* Apple translucent material for floating chrome & sheets */
 .material-chrome {
-  background-color: rgba(25, 25, 27, 0.78);
+  background-color: rgba(25, 25, 27, 0.82);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Size-specific tracking & tabular numerals */

@@ -21,11 +21,11 @@ const error = ref('')
 const submitting = ref(false)
 const formValues = reactive({})
 
-// Apple Direct Manipulation 1:1 Drag & Spring controller for the sheet
+// Apple Direct Manipulation 1:1 Drag & Spring controller for the mobile bottom sheet / desktop panel
 const sheetEl = ref(null)
 const dragOffsetY = ref(0)
 const isDragging = ref(false)
-const springY = createSpringController(24)
+const springY = createSpringController(32)
 
 let pointerStartY = 0
 let initialSheetY = 0
@@ -79,18 +79,8 @@ function onPointerUp() {
   const projectedY = dragOffsetY.value + project(releaseVelocity, 0.992)
 
   // Symmetric exit along the same path if flicked downward
-  if (projectedY > 180 && releaseVelocity >= 0) {
-    springY.animateTo(420, {
-      initialVelocity: releaseVelocity,
-      dampingRatio: 1.0,
-      response: 0.28,
-      onUpdate: (v) => {
-        dragOffsetY.value = v
-      },
-      onComplete: () => {
-        emit('close')
-      }
-    })
+  if (projectedY > 140 && releaseVelocity >= 0) {
+    dismissSheet(releaseVelocity)
   } else {
     springY.animateTo(0, {
       initialVelocity: releaseVelocity,
@@ -101,6 +91,20 @@ function onPointerUp() {
       }
     })
   }
+}
+
+function dismissSheet(initialVel = 0) {
+  springY.animateTo(480, {
+    initialVelocity: initialVel,
+    dampingRatio: 1.0,
+    response: 0.26,
+    onUpdate: (v) => {
+      dragOffsetY.value = v
+    },
+    onComplete: () => {
+      emit('close')
+    }
+  })
 }
 
 const fieldsSchema = computed(() => {
@@ -215,8 +219,8 @@ watch(includeArchive, fetchDetail)
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
-  dragOffsetY.value = 20
-  springY.setImmediate(20)
+  dragOffsetY.value = 32
+  springY.setImmediate(32)
   springY.animateTo(0, {
     dampingRatio: 1.0,
     response: 0.32,
@@ -234,271 +238,320 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section
-    ref="sheetEl"
-    class="rounded-[16px] bg-graphite-card border hairline-border p-6 space-y-6 will-change-transform"
-    :style="{
-      transform: `translate3d(0, ${dragOffsetY}px, 0)`
-    }"
-  >
-    <!-- Tactile drag handle & header -->
+  <!-- Mobile Scrim + Bottom Sheet on < md, Inline Panel on md+ -->
+  <div class="fixed inset-0 z-40 flex items-end md:static md:block md:z-auto">
+    <!-- Dimming scrim on mobile (Apple Design §12: "Dim to focus") -->
     <div
-      class="cursor-grab active:cursor-grabbing select-none touch-none pb-4 border-b hairline-border"
-      @pointerdown="onPointerDown"
-      @pointermove="onPointerMove"
-      @pointerup="onPointerUp"
-      @pointercancel="onPointerUp"
-    >
-      <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-ink-muted/30"></div>
+      class="fixed inset-0 bg-black/65 md:hidden"
+      @click="dismissSheet()"
+    ></div>
 
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 text-xs font-mono meta-mono text-ink-muted">
-            <span>{{ tracker?.type || 'Tracker' }}</span>
-            <span>·</span>
-            <span>{{ trackerId }}</span>
+    <section
+      ref="sheetEl"
+      class="relative z-10 w-full max-h-[88dvh] overflow-y-auto rounded-t-[20px] md:max-h-none md:overflow-visible md:rounded-[16px] bg-graphite-card border hairline-border p-4 sm:p-6 space-y-5 safe-bottom will-change-transform"
+      :style="{
+        transform: `translate3d(0, ${dragOffsetY}px, 0)`
+      }"
+    >
+      <!-- Tactile drag handle & header -->
+      <div
+        class="cursor-grab active:cursor-grabbing select-none touch-none pb-3.5 border-b hairline-border sticky top-0 bg-graphite-card z-10 -mx-4 px-4 sm:static sm:mx-0 sm:px-0"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @pointercancel="onPointerUp"
+      >
+        <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-ink-muted/30"></div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 text-xs font-mono meta-mono text-ink-muted">
+              <span>{{ tracker?.type || 'Tracker' }}</span>
+              <span>·</span>
+              <span class="truncate">{{ trackerId }}</span>
+            </div>
+            <h2 class="mt-1 text-[18px] sm:text-[20px] leading-[24px] sm:leading-[26px] font-medium text-ink-primary truncate">
+              {{ tracker?.display_name || trackerId }}
+            </h2>
           </div>
-          <h2 class="mt-1 text-[20px] leading-[26px] font-medium text-ink-primary">
-            {{ tracker?.display_name || trackerId }}
-          </h2>
-        </div>
 
-        <div class="flex items-center gap-3" @pointerdown.stop>
-          <label class="inline-flex items-center gap-2 text-xs text-ink-secondary cursor-pointer">
-            <input
-              v-model="includeArchive"
-              type="checkbox"
-              class="h-3.5 w-3.5 rounded-[4px] border-ink-muted/40 bg-graphite-deep accent-[#ededed]"
-            />
-            <span>Archives mensuelles</span>
-          </label>
+          <div class="flex items-center gap-2 sm:gap-3" @pointerdown.stop>
+            <label class="inline-flex items-center gap-2 text-xs text-ink-secondary cursor-pointer">
+              <input
+                v-model="includeArchive"
+                type="checkbox"
+                class="h-4 w-4 sm:h-3.5 sm:w-3.5 rounded-[4px] border-ink-muted/40 bg-graphite-deep accent-[#ededed]"
+              />
+              <span>Archives</span>
+            </label>
 
-          <button
-            type="button"
-            class="btn-secondary h-8 rounded-[8px] px-3 text-xs font-medium inline-flex items-center gap-2"
-            @click="emit('close')"
-          >
-            <span>Fermer</span>
-            <kbd class="keycap">Esc</kbd>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div
-      v-if="error"
-      class="rounded-[8px] bg-graphite-deep border border-semantic-negative/40 px-3.5 py-2.5 text-xs text-semantic-negative"
-    >
-      {{ error }}
-    </div>
-
-    <!-- Cycle state machine controls -->
-    <div
-      v-if="tracker?.type === 'CYCLE_STATE_MACHINE'"
-      class="rounded-[12px] bg-graphite-deep border hairline-border p-4 space-y-3"
-    >
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <span class="text-xs text-ink-muted">Étape active du cycle</span>
-          <div class="mt-0.5 text-[18px] leading-[24px] font-medium text-ink-primary flex items-center gap-2">
-            <span class="h-2 w-2 rounded-full bg-accent"></span>
-            <span>{{ tracker.current_step }}</span>
+            <button
+              type="button"
+              class="btn-secondary h-9 sm:h-8 rounded-[8px] px-3 text-xs font-medium inline-flex items-center gap-2"
+              @click="emit('close')"
+            >
+              <span>Fermer</span>
+              <kbd class="keycap hidden sm:inline-flex">Esc</kbd>
+            </button>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            :disabled="submitting"
-            class="btn-primary h-8 rounded-[8px] px-3 text-xs font-medium inline-flex items-center gap-1.5"
-            @click="handleCycleMutation('advance')"
-          >
-            <span>Avancer (+1)</span>
-            <AppIcon name="arrow-right" />
-          </button>
-          <button
-            type="button"
-            :disabled="submitting"
-            class="btn-secondary h-8 rounded-[8px] px-3 text-xs font-medium inline-flex items-center gap-1.5"
-            @click="handleCycleMutation('skip')"
-          >
-            <AppIcon name="pause" />
-            <span>Maintenir aujourd’hui</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap gap-1.5 pt-1">
-        <button
-          v-for="(step, idx) in tracker.cycle_config?.steps || []"
-          :key="idx"
-          type="button"
-          :disabled="submitting"
-          class="pressable h-8 rounded-[6px] px-3 text-xs font-medium border"
-          :class="
-            idx === Number(tracker.cycle_config?.current_index ?? 0)
-              ? 'surface-raised text-ink-primary'
-              : 'bg-graphite-bg border-transparent text-ink-muted hover:text-ink-primary'
-          "
-          @click="handleCycleMutation('set', idx)"
-        >
-          <span class="font-mono meta-mono mr-1.5 text-ink-muted">0{{ idx + 1 }}</span>
-          <span>{{ step }}</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Dynamic Record Creation Form driven by fields_schema -->
-    <form
-      class="rounded-[12px] bg-graphite-deep border hairline-border p-4 space-y-4"
-      @submit.prevent="handleCreateRecord"
-    >
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-ink-secondary">
-          Nouvelle entrée
-        </span>
-        <span class="text-xs font-mono meta-mono text-ink-muted">
-          {{ fieldsSchema.length }} champs
-        </span>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div v-for="field in fieldsSchema" :key="field.name">
-          <label class="block text-xs font-mono meta-mono text-ink-secondary mb-1.5">
-            {{ field.name }}
-            <span v-if="field.required" class="text-accent">*</span>
-          </label>
-          <input
-            v-model="formValues[field.name]"
-            :type="
-              field.type === 'number'
-                ? 'number'
-                : field.type === 'date'
-                  ? 'date'
-                  : 'text'
-            "
-            :required="Boolean(field.required)"
-            :placeholder="field.name"
-            class="h-9 w-full rounded-[8px] border hairline-border bg-graphite-bg px-3 text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <div class="flex justify-end">
-        <button
-          type="submit"
-          :disabled="submitting"
-          class="btn-primary h-8 rounded-[8px] px-4 text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40"
-        >
-          <AppIcon name="plus" />
-          <span>Ajouter l’entrée</span>
-        </button>
-      </div>
-    </form>
-
-    <!-- Active Records Table -->
-    <div class="space-y-3">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <h3 class="text-sm font-medium text-ink-primary">
-            Entrées actives
-          </h3>
-          <span class="text-xs font-mono meta-mono text-ink-muted">
-            {{ filteredRecords.length }}
-          </span>
-        </div>
-
-        <div class="relative">
-          <span class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-ink-muted">
-            <AppIcon name="search" />
-          </span>
-          <input
-            v-model="searchQuery"
-            type="search"
-            placeholder="Rechercher"
-            class="h-8 rounded-[8px] border hairline-border bg-graphite-deep pl-8 pr-3 text-xs text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <div v-if="loading" class="text-xs text-ink-muted py-4">
-        Lecture de data_{{ trackerId }}.json
       </div>
 
       <div
-        v-else-if="filteredRecords.length === 0"
-        class="rounded-[12px] border hairline-border bg-graphite-deep/50 p-6 text-center text-xs text-ink-muted"
+        v-if="error"
+        class="rounded-[8px] bg-graphite-deep border border-semantic-negative/40 px-3.5 py-2.5 text-xs text-semantic-negative"
       >
-        Aucune entrée pour ce filtre
+        {{ error }}
       </div>
 
-      <div v-else class="overflow-x-auto rounded-[12px] border hairline-border">
-        <table class="min-w-full divide-y divide-[#ededed]/[0.06] text-left text-xs">
-          <thead class="bg-graphite-deep text-ink-muted font-mono meta-mono">
-            <tr>
-              <th
-                v-for="field in fieldsSchema"
-                :key="field.name"
-                class="px-3.5 py-2.5 font-normal"
-              >
-                {{ field.name }}
-              </th>
-              <th class="px-3.5 py-2.5 font-normal text-right">Mise à jour</th>
-              <th class="px-3.5 py-2.5 font-normal text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[#ededed]/[0.06] bg-graphite-card">
-            <tr
+      <!-- Cycle state machine controls -->
+      <div
+        v-if="tracker?.type === 'CYCLE_STATE_MACHINE'"
+        class="rounded-[12px] bg-graphite-deep border hairline-border p-4 space-y-3"
+      >
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span class="text-xs text-ink-muted">Étape active du cycle</span>
+            <div class="mt-0.5 text-[18px] leading-[24px] font-medium text-ink-primary flex items-center gap-2">
+              <span class="h-2 w-2 rounded-full bg-accent"></span>
+              <span>{{ tracker.current_step }}</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 sm:flex items-center gap-2">
+            <button
+              type="button"
+              :disabled="submitting"
+              class="btn-primary h-10 sm:h-8 rounded-[8px] px-3 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+              @click="handleCycleMutation('advance')"
+            >
+              <span>Avancer (+1)</span>
+              <AppIcon name="arrow-right" />
+            </button>
+            <button
+              type="button"
+              :disabled="submitting"
+              class="btn-secondary h-10 sm:h-8 rounded-[8px] px-3 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+              @click="handleCycleMutation('skip')"
+            >
+              <AppIcon name="pause" />
+              <span>Maintenir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 pt-1">
+          <button
+            v-for="(step, idx) in tracker.cycle_config?.steps || []"
+            :key="idx"
+            type="button"
+            :disabled="submitting"
+            class="pressable h-10 sm:h-8 rounded-[6px] px-3 text-xs font-medium border text-left sm:text-center truncate"
+            :class="
+              idx === Number(tracker.cycle_config?.current_index ?? 0)
+                ? 'surface-raised text-ink-primary'
+                : 'bg-graphite-bg border-transparent text-ink-muted hover:text-ink-primary'
+            "
+            @click="handleCycleMutation('set', idx)"
+          >
+            <span class="font-mono meta-mono mr-1.5 text-ink-muted">0{{ idx + 1 }}</span>
+            <span>{{ step }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dynamic Record Creation Form driven by fields_schema (16px text on mobile to prevent Android/iOS input zoom) -->
+      <form
+        class="rounded-[12px] bg-graphite-deep border hairline-border p-4 space-y-4"
+        @submit.prevent="handleCreateRecord"
+      >
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-ink-secondary">
+            Nouvelle entrée
+          </span>
+          <span class="text-xs font-mono meta-mono text-ink-muted">
+            {{ fieldsSchema.length }} champs
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div v-for="field in fieldsSchema" :key="field.name">
+            <label class="block text-xs font-mono meta-mono text-ink-secondary mb-1.5">
+              {{ field.name }}
+              <span v-if="field.required" class="text-accent">*</span>
+            </label>
+            <input
+              v-model="formValues[field.name]"
+              :type="
+                field.type === 'number'
+                  ? 'number'
+                  : field.type === 'date'
+                    ? 'date'
+                    : 'text'
+              "
+              :required="Boolean(field.required)"
+              :placeholder="field.name"
+              class="h-10 sm:h-9 w-full rounded-[8px] border hairline-border bg-graphite-bg px-3 text-[16px] sm:text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button
+            type="submit"
+            :disabled="submitting"
+            class="btn-primary h-10 sm:h-8 w-full sm:w-auto rounded-[8px] px-4 text-xs font-medium inline-flex items-center justify-center gap-1.5 disabled:opacity-40"
+          >
+            <AppIcon name="plus" />
+            <span>Ajouter l’entrée</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Active Records List: Stacked Cards on Mobile (< sm), Table on Desktop (sm+) -->
+      <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-ink-primary">
+              Entrées actives
+            </h3>
+            <span class="text-xs font-mono meta-mono text-ink-muted">
+              {{ filteredRecords.length }}
+            </span>
+          </div>
+
+          <div class="relative w-full sm:w-64">
+            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-muted">
+              <AppIcon name="search" />
+            </span>
+            <input
+              v-model="searchQuery"
+              type="search"
+              placeholder="Rechercher"
+              class="h-10 sm:h-8 w-full rounded-[8px] border hairline-border bg-graphite-deep pl-9 pr-3 text-[16px] sm:text-xs text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div v-if="loading" class="text-xs text-ink-muted py-4">
+          Lecture de data_{{ trackerId }}.json
+        </div>
+
+        <div
+          v-else-if="filteredRecords.length === 0"
+          class="rounded-[12px] border hairline-border bg-graphite-deep/50 p-6 text-center text-xs text-ink-muted"
+        >
+          Aucune entrée pour ce filtre
+        </div>
+
+        <template v-else>
+          <!-- Mobile Stacked Cards (< 640px, unslop §6: simpler on mobile instead of zoomed-down table) -->
+          <div class="space-y-2 sm:hidden">
+            <div
               v-for="rec in filteredRecords"
               :key="rec.id"
-              class="hover:bg-graphite-raised/50 transition-colors duration-150"
+              class="rounded-[10px] bg-graphite-deep border hairline-border p-3.5 space-y-2"
             >
-              <td
+              <div
                 v-for="field in fieldsSchema"
                 :key="field.name"
-                class="px-3.5 py-2.5 text-ink-primary"
-                :class="field.type === 'number' ? 'font-mono meta-mono text-right' : ''"
+                class="flex items-baseline justify-between gap-3 text-xs"
               >
-                {{ rec[field.name] ?? '—' }}
-              </td>
-              <td class="px-3.5 py-2.5 font-mono meta-mono text-ink-muted text-right">
-                {{ (rec.updated_at || rec.created_at || '').slice(0, 16).replace('T', ' ') }}
-              </td>
-              <td class="px-3.5 py-2.5 text-right">
+                <span class="font-mono meta-mono text-ink-muted shrink-0">
+                  {{ field.name }}
+                </span>
+                <span
+                  class="text-ink-primary text-right break-words"
+                  :class="field.type === 'number' ? 'font-mono meta-mono' : ''"
+                >
+                  {{ rec[field.name] ?? '—' }}
+                </span>
+              </div>
+
+              <div class="pt-2 border-t hairline-border flex items-center justify-between text-xs font-mono meta-mono text-ink-muted">
+                <span>{{ (rec.updated_at || rec.created_at || '').slice(0, 16).replace('T', ' ') }}</span>
                 <button
                   type="button"
-                  class="pressable inline-flex items-center gap-1 text-ink-muted hover:text-semantic-negative font-mono meta-mono"
+                  class="pressable h-8 px-2.5 rounded-[6px] bg-graphite-raised text-ink-secondary hover:text-semantic-negative inline-flex items-center gap-1.5"
                   @click="handleDeleteRecord(rec.id)"
                 >
                   <AppIcon name="trash" />
                   <span>Supprimer</span>
                 </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+              </div>
+            </div>
+          </div>
 
-    <!-- Monthly Archive View -->
-    <div
-      v-if="includeArchive && Array.isArray(tracker?.archive)"
-      class="rounded-[12px] border hairline-border bg-graphite-deep p-4 space-y-2"
-    >
-      <div class="flex items-center justify-between">
-        <h4 class="text-xs font-medium text-ink-secondary">
-          Archives mensuelles (archive_{{ trackerId }}.json)
-        </h4>
-        <span class="text-xs font-mono meta-mono text-ink-muted">
-          {{ tracker.archive.length }}
-        </span>
+          <!-- Desktop Aligned Table (sm+) -->
+          <div class="hidden sm:block overflow-x-auto rounded-[12px] border hairline-border">
+            <table class="min-w-full divide-y divide-[#ededed]/[0.06] text-left text-xs">
+              <thead class="bg-graphite-deep text-ink-muted font-mono meta-mono">
+                <tr>
+                  <th
+                    v-for="field in fieldsSchema"
+                    :key="field.name"
+                    class="px-3.5 py-2.5 font-normal"
+                  >
+                    {{ field.name }}
+                  </th>
+                  <th class="px-3.5 py-2.5 font-normal text-right">Mise à jour</th>
+                  <th class="px-3.5 py-2.5 font-normal text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#ededed]/[0.06] bg-graphite-card">
+                <tr
+                  v-for="rec in filteredRecords"
+                  :key="rec.id"
+                  class="hover:bg-graphite-raised/50 transition-colors duration-150"
+                >
+                  <td
+                    v-for="field in fieldsSchema"
+                    :key="field.name"
+                    class="px-3.5 py-2.5 text-ink-primary"
+                    :class="field.type === 'number' ? 'font-mono meta-mono text-right' : ''"
+                  >
+                    {{ rec[field.name] ?? '—' }}
+                  </td>
+                  <td class="px-3.5 py-2.5 font-mono meta-mono text-ink-muted text-right">
+                    {{ (rec.updated_at || rec.created_at || '').slice(0, 16).replace('T', ' ') }}
+                  </td>
+                  <td class="px-3.5 py-2.5 text-right">
+                    <button
+                      type="button"
+                      class="pressable inline-flex items-center gap-1 text-ink-muted hover:text-semantic-negative font-mono meta-mono"
+                      @click="handleDeleteRecord(rec.id)"
+                    >
+                      <AppIcon name="trash" />
+                      <span>Supprimer</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
       </div>
-      <div v-if="tracker.archive.length === 0" class="text-xs text-ink-muted">
-        Aucune archive enregistrée
+
+      <!-- Monthly Archive View -->
+      <div
+        v-if="includeArchive && Array.isArray(tracker?.archive)"
+        class="rounded-[12px] border hairline-border bg-graphite-deep p-4 space-y-2"
+      >
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-medium text-ink-secondary">
+            Archives mensuelles (archive_{{ trackerId }}.json)
+          </h4>
+          <span class="text-xs font-mono meta-mono text-ink-muted">
+            {{ tracker.archive.length }}
+          </span>
+        </div>
+        <div v-if="tracker.archive.length === 0" class="text-xs text-ink-muted">
+          Aucune archive enregistrée
+        </div>
+        <pre
+          v-else
+          class="overflow-x-auto text-xs font-mono meta-mono text-ink-secondary whitespace-pre-wrap"
+        >{{ JSON.stringify(tracker.archive, null, 2) }}</pre>
       </div>
-      <pre
-        v-else
-        class="overflow-x-auto text-xs font-mono meta-mono text-ink-secondary whitespace-pre-wrap"
-      >{{ JSON.stringify(tracker.archive, null, 2) }}</pre>
-    </div>
-  </section>
+    </section>
+  </div>
 </template>

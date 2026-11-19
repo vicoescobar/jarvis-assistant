@@ -445,7 +445,18 @@
         "resource": "file",
         "operation": "createFromText",
         "name": "={{ $fromAI('name', 'Nom du fichier ex: note.md', 'string') }}",
-        "content": "={{ $fromAI('content', 'Contenu texte du fichier', 'string') }}"
+        "content": "={{ $fromAI('content', 'Contenu texte du fichier', 'string') }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        }
       },
       "id": "b1a00001-0022-4000-8000-000000000022",
       "name": "google_drive_create_file",
@@ -491,6 +502,7 @@
         "toolDescription": "Crée un nouveau Google Doc vide avec un titre.",
         "resource": "document",
         "operation": "create",
+        "folderId": "/",
         "title": "={{ $fromAI('title', 'Titre du nouveau Google Doc', 'string') }}"
       },
       "id": "b1a00001-0024-4000-8000-000000000024",
@@ -909,7 +921,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },

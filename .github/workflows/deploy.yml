@@ -24,4 +24,37 @@ jobs:
             [ -f /home/jarvis/app/infra/user_data/discord_chat_history.json ] || echo '{"messages":[]}' > /home/jarvis/app/infra/user_data/discord_chat_history.json
             sudo chown -R 1000:1000 /home/jarvis/app/infra/n8n_data /home/jarvis/app/infra/user_data
             sudo docker compose --env-file /home/jarvis/app/.env -f /home/jarvis/app/infra/docker-compose.yml up -d --build --remove-orphans
-            sudo docker exec -u node jarvis-n8n n8n import:workflow --separate --input=/home/node/workflows/ || true
+            sudo docker exec -u node jarvis-n8n n8n export:credentials --all --output=/tmp/n8n_creds.json || true
+            sudo docker exec -u node jarvis-n8n node -e '
+              const fs = require("fs");
+              const path = require("path");
+              const credsPath = "/tmp/n8n_creds.json";
+              const srcDir = "/home/node/workflows";
+              const outDir = "/tmp/workflows_resolved";
+              fs.mkdirSync(outDir, { recursive: true });
+              let creds = [];
+              if (fs.existsSync(credsPath)) {
+                try { creds = JSON.parse(fs.readFileSync(credsPath, "utf8")); } catch (e) {}
+              }
+              for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith(".json"))) {
+                const wf = JSON.parse(fs.readFileSync(path.join(srcDir, file), "utf8"));
+                wf.active = true;
+                for (const node of wf.nodes || []) {
+                  if (node.credentials && typeof node.credentials === "object") {
+                    for (const [credType, credVal] of Object.entries(node.credentials)) {
+                      const byNameAndType = creds.find((c) => c.type === credType && c.name === credVal.name);
+                      const byType = creds.find((c) => c.type === credType);
+                      const matched = byNameAndType || byType;
+                      if (matched && matched.id) {
+                        node.credentials[credType] = { id: matched.id, name: matched.name };
+                      }
+                    }
+                  }
+                }
+                fs.writeFileSync(path.join(outDir, file), JSON.stringify(wf, null, 2), "utf8");
+              }
+            ' || true
+            sudo docker exec -u node jarvis-n8n n8n import:workflow --separate --input=/tmp/workflows_resolved/ || sudo docker exec -u node jarvis-n8n n8n import:workflow --separate --input=/home/node/workflows/ || true
+            sudo docker exec -u node jarvis-n8n rm -rf /tmp/n8n_creds.json /tmp/workflows_resolved || true
+            sudo docker exec -u node jarvis-n8n n8n update:workflow --all --active=true || true
+            sudo docker restart jarvis-n8n || true

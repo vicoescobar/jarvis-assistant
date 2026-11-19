@@ -68,3 +68,16 @@ services:
     volumes:
       - ./user_data:/var/www/user_data
       - ./backend_data:/var/www/storage/app/sqlite
+
+  jarvis-dashboard:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${BACKEND_APP_URL:-https://jarvis-api.victor-giroud.fr}
+    container_name: jarvis-dashboard
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5680:80"
+    depends_on:
+      - jarvis-backend

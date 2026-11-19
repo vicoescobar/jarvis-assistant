@@ -29,6 +29,8 @@ SCAN_TARGETS=()
 [ -d "backend/app" ] && SCAN_TARGETS+=("backend/app")
 [ -d "backend/config" ] && SCAN_TARGETS+=("backend/config")
 [ -d "backend/routes" ] && SCAN_TARGETS+=("backend/routes")
+[ -d "frontend/src" ] && SCAN_TARGETS+=("frontend/src")
+[ -d "frontend/public" ] && SCAN_TARGETS+=("frontend/public")
 
 if [ ${#SCAN_TARGETS[@]} -gt 0 ]; then
   for pattern in "${SECRET_PATTERNS[@]}"; do

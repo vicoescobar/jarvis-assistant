@@ -2,13 +2,12 @@ flowchart TB
     classDef user fill:#4F46E5,stroke:#312E81,stroke-width:2px,color:#fff
     classDef google fill:#0F9D58,stroke:#0B8043,stroke-width:2px,color:#fff
     classDef vps fill:#EA580C,stroke:#9A3412,stroke-width:2px,color:#fff
-    classDef future fill:#64748B,stroke:#334155,stroke-width:2px,stroke-dasharray: 5 5,color:#fff
 
     subgraph CLIENT ["📱 Points de contact Mobile & Desktop"]
         VOICE["🎙️ Assistant Vocal Android / Webhooks"]:::user
         CHAT["💬 Discord (#briefing, #logs-voix, #chatbot)"]:::user
         CAL["📅 Agenda & Google Tasks"]:::user
-        DASH["💻 Jarvis Web Cockpit (Vue.js 3)<br/>jarvis-dashboard.victor-giroud.fr"]:::future
+        PWA["📲 Android PWA / Desktop Browser<br/>(?view=voice&autostart=true)"]:::user
     end
 
     subgraph CLOUD ["☁️ Écosystème Google Workspace & Sources Externes"]
@@ -19,8 +18,9 @@ flowchart TB
     end
 
     subgraph VPS ["🖥️ VPS OVH (CloudPanel + Docker + CI/CD)"]
-        N8N["⚙️ Orchestrateur n8n (Workflows 01, 02, 03, 04)<br/>127.0.0.1:5678"]:::vps
+        N8N["⚙️ Orchestrateur n8n (Workflows 01, 02, 03, 04)<br/>127.0.0.1:5678 -> jarvis.victor-giroud.fr"]:::vps
         API["🛡️ jarvis-backend (Laravel 11 / PHP 8.3 / Sanctum)<br/>127.0.0.1:5679 -> jarvis-api.victor-giroud.fr"]:::vps
+        DASH["💻 jarvis-dashboard (Vue.js 3 + Tailwind + Nginx)<br/>127.0.0.1:5680 -> jarvis-dashboard.victor-giroud.fr"]:::vps
         DBRIDGE["🤖 jarvis-discord-bridge (#chatbot Text + Audio)"]:::vps
         USERDATA["🗄️ Volume user_data (Trackers, Memory, Chat History & Archives 30j)"]:::vps
         SQLITE["🔐 Volume backend_data (SQLite Sanctum Auth)"]:::vps
@@ -30,7 +30,8 @@ flowchart TB
     VOICE -->|"POST /webhook/voice-command"| N8N
     CHAT <-->|"Messages & Vocaux #chatbot"| DBRIDGE
     DBRIDGE <-->|"POST /webhook/discord-chat"| N8N
-    DASH <-->|"REST API (Bearer Sanctum)"| API
+    PWA <-->|"HTTPS SPA & Service Worker"| DASH
+    PWA <-->|"REST API (Bearer Sanctum)"| API
     API <-->|"Auth & Tokens"| SQLITE
     API <-->|"Lecture / Écriture atomique LOCK_EX"| USERDATA
     API <-->|"Proxy interne /webhook/*"| N8N

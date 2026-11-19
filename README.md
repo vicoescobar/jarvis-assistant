@@ -1,6 +1,6 @@
 # 🧠 Jarvis Assistant — ADHD Executive Prosthesis & AI Orchestrator
 
-Jarvis is an event-driven personal assistant and executive function prosthesis built with **n8n**, **Google Gemini (`gemini-3.5-flash-lite`)**, **Laravel 11 (PHP 8.3 REST API Gateway)**, **Docker Compose**, and **GitHub Actions CI/CD**.
+Jarvis is an event-driven personal assistant and executive function prosthesis built with **n8n**, **Google Gemini (`gemini-3.5-flash-lite`)**, **Laravel 11 (PHP 8.3 REST API Gateway)**, **Vue.js 3 + Tailwind CSS (Cockpit & Android PWA)**, **Docker Compose**, and **GitHub Actions CI/CD**.
 
 It is designed around two core goals:
 1. **Clinical ADHD Cognitive Accessibility & Direct Executive Tone:** Reduce cognitive friction (< 2 minutes per interaction) through architectural noise filtering, proactive orchestration, and a crisp, factual **Chief-of-Staff executive tone** (zero patronizing/coddling language, zero Night Amnesty rollovers, full visibility on all active Google Tasks `@default` including undated ones, and 45-min timed Ableton Live sandboxes).
@@ -29,8 +29,17 @@ It is designed around two core goals:
 
 ---
 
+## 💻 Dynamic Vue.js 3 Cockpit & Android PWA (`frontend/`)
+
+`jarvis-dashboard` (`https://jarvis-dashboard.victor-giroud.fr` -> `127.0.0.1:5680`) is a lightweight **Vue.js 3 (Composition API `<script setup>`) + Vite + Tailwind CSS** SPA served by `nginx:1.27-alpine` (~15–25 MB RAM):
+- **100% Schema-Driven Trackers:** Dynamically renders `CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, and `ACTIVITY_LOG` trackers from `GET /api/trackers` without hardcoded tracker IDs.
+- **Shared Multi-Surface Chat & Web Speech Voice:** Shares conversation history with Discord `#chatbot` (`discord_chat_history.json`) and supports browser speech recognition (`SpeechRecognition` / `webkitSpeechRecognition`) + optional TTS (`speechSynthesis`).
+- **Installable Android PWA & 1-Tap Voice Shortcut:** Includes `manifest.webmanifest` and `sw.js` with a home-screen shortcut (`/?view=voice&autostart=true`) that opens the voice tab and starts microphone dictation immediately.
+- **Observability / LLMOps & Memory Rules Manager:** Displays real-time API health, active trackers/memory counts, and request latency (`ms`), plus full CRUD over `memory_rules.json`.
+
+---
+
 ## 🔮 Future Backlog & Bonus Features
-- **Jarvis Web Cockpit (`frontend/`):** Vue.js 3 + Tailwind CSS dashboard (`https://jarvis-dashboard.victor-giroud.fr`).
 - **Real-time Discord Voice Channel (RTC):** Bidirectional real-time voice conversation in a Discord voice channel (Bonus backlog item).
 
 ---
@@ -44,8 +53,9 @@ It is designed around two core goals:
 ├── .github/workflows/deploy.yml             # Automated SSH deployment & workflow import to OVH VPS
 ├── backend/                                 # Laravel 11 REST API Gateway (PHP 8.3, Sanctum, SQLite)
 ├── docs/achitecture.mmd                     # Mermaid system architecture diagram
+├── frontend/                                # Vue.js 3 + Tailwind CSS Cockpit & Android PWA (127.0.0.1:5680)
 ├── infra/
-│   ├── docker-compose.yml                   # Production stack (jarvis-n8n, jarvis-discord-bridge, jarvis-backend)
+│   ├── docker-compose.yml                   # Production stack (jarvis-n8n, jarvis-discord-bridge, jarvis-backend, jarvis-dashboard)
 │   └── .env.exemple                         # Environment template
 ├── scripts/discord-bridge/                  # Discord #chatbot Gateway bridge (Text + Audio)
 └── workflows/                               # Versioned, sanitized n8n workflows

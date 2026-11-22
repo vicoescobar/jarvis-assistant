@@ -31,9 +31,23 @@ const BASE_SHADOW_RESET = `
 }
 :host {
   display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
   font-family: inherit;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+}
+.jarvis-shadow-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.jarvis-shadow-container * {
+  min-width: 0;
+  max-width: 100%;
 }
 button, [data-jarvis-action] {
   font-family: inherit;

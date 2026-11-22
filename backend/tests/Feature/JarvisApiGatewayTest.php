@@ -402,4 +402,60 @@ class JarvisApiGatewayTest extends TestCase
             ->assertOk()
             ->assertJsonMissingPath('custom_view');
     }
+
+    public function test_soft_deleted_and_supprime_records_are_automatically_filtered_out(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        File::put($this->tempUserDataDir.'/trackers_registry.json', json_encode([
+            'trackers' => [
+                'client_pipeline' => [
+                    'display_name' => 'Pipeline Projets',
+                    'type' => 'COLLECTION_TABLE',
+                    'include_in_morning_briefing' => true,
+                    'fields_schema' => [
+                        ['name' => 'client', 'type' => 'string', 'required' => true],
+                        ['name' => 'status', 'type' => 'status', 'required' => true],
+                    ],
+                ],
+            ],
+        ]));
+
+        File::put($this->tempUserDataDir.'/data_client_pipeline.json', json_encode([
+            [
+                'id' => 'rec_active_1',
+                'client' => 'Studio Alpha',
+                'status' => 'Confirmé',
+                'created_at' => '2026-11-20T10:00:00Z',
+            ],
+            [
+                'id' => 'rec_deleted_flag',
+                'client' => 'Client Annulé',
+                'status' => 'En cours',
+                'deleted' => true,
+                'created_at' => '2026-11-20T11:00:00Z',
+            ],
+            [
+                'id' => 'rec_supprime_text',
+                'client' => 'SUPPRIMÉ',
+                'status' => '[SUPPRIMÉ]',
+                'created_at' => '2026-11-20T12:00:00Z',
+            ],
+        ]));
+
+        // GET /api/trackers filters out deleted===true and "SUPPRIMÉ" entries from record_count & recent_records
+        $this->getJson('/api/trackers')
+            ->assertOk()
+            ->assertJsonPath('trackers.0.id', 'client_pipeline')
+            ->assertJsonPath('trackers.0.record_count', 1)
+            ->assertJsonCount(1, 'trackers.0.recent_records')
+            ->assertJsonPath('trackers.0.recent_records.0.id', 'rec_active_1');
+
+        // GET /api/trackers/{id} also filters out soft-deleted entries from records
+        $this->getJson('/api/trackers/client_pipeline')
+            ->assertOk()
+            ->assertJsonPath('record_count', 1)
+            ->assertJsonCount(1, 'records')
+            ->assertJsonPath('records.0.client', 'Studio Alpha');
+    }
 }

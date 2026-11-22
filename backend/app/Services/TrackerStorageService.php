@@ -46,7 +46,7 @@ class TrackerStorageService
                 continue;
             }
 
-            $records = $this->readTrackerRecords($trackerId);
+            $records = $this->filterActiveRecords($this->readTrackerRecords($trackerId));
             $result[] = $this->enrichTracker($trackerId, $schema, $records);
         }
 
@@ -68,7 +68,7 @@ class TrackerStorageService
         }
 
         $schema = $registry['trackers'][$trackerId];
-        $records = $this->readTrackerRecords($trackerId);
+        $records = $this->filterActiveRecords($this->readTrackerRecords($trackerId));
         $tracker = $this->enrichTracker($trackerId, $schema, $records);
         $tracker['records'] = $records;
 
@@ -310,6 +310,35 @@ class TrackerStorageService
         }
 
         return $response;
+    }
+
+    /**
+     * Filter out soft-deleted entries (`deleted === true` or any field set to `"SUPPRIMÉ"` / `"[SUPPRIMÉ]"`).
+     *
+     * @param  array<int, array<string, mixed>>  $records
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterActiveRecords(array $records): array
+    {
+        return array_values(array_filter($records, function (mixed $record): bool {
+            if (! is_array($record)) {
+                return false;
+            }
+            if (($record['deleted'] ?? false) === true) {
+                return false;
+            }
+
+            foreach ($record as $value) {
+                if (is_string($value)) {
+                    $normalized = mb_strtoupper(trim($value), 'UTF-8');
+                    if (in_array($normalized, ['SUPPRIMÉ', '[SUPPRIMÉ]', 'SUPPRIME', '[SUPPRIME]'], true)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }));
     }
 
     /**

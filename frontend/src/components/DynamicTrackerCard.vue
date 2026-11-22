@@ -228,8 +228,11 @@ async function handleCycleAction(action, targetIndex = null) {
       </p>
     </div>
 
-    <!-- Bottom controls -->
-    <div class="flex items-center gap-2.5 pt-3.5 border-t hairline-border">
+    <!-- Bottom controls (hidden when custom view is active for COLLECTION_TABLE / ACTIVITY_LOG to avoid duplicate footers) -->
+    <div
+      v-if="tracker.type === 'CYCLE_STATE_MACHINE' || !isRenderingCustomView"
+      class="flex items-center gap-2.5 pt-3.5 border-t hairline-border"
+    >
       <template v-if="tracker.type === 'CYCLE_STATE_MACHINE'">
         <button
           type="button"
@@ -262,7 +265,7 @@ async function handleCycleAction(action, targetIndex = null) {
       </template>
 
       <button
-        v-else
+        v-else-if="!isRenderingCustomView"
         type="button"
         class="btn-secondary h-12 sm:h-9 w-full rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-between"
         @click="emit('open', tracker.id)"

@@ -42,6 +42,39 @@ export function sanitizeCustomCss(rawCss) {
     .trim()
 }
 
+function isTruthyField(value) {
+  if (value === null || value === undefined || value === false) return false
+  if (typeof value === 'string' && value.trim() === '') return false
+  if (typeof value === 'number' && (Number.isNaN(value) || value === 0)) return false
+  if (Array.isArray(value)) return value.length > 0
+  return Boolean(value)
+}
+
+function evaluateConditionals(blockHtml, contextObj = {}) {
+  let out = blockHtml
+  // Loop up to 4 passes to support nested conditional blocks
+  for (let pass = 0; pass < 4; pass++) {
+    const prev = out
+    // {{#if field}}...{{/if}}
+    out = out.replace(
+      /\{\{#if\s+([a-zA-Z0-9_]+)\s*\}\}([\s\S]*?)\{\{\/if\}\}/g,
+      (_, fieldKey, inner) => (isTruthyField(contextObj?.[fieldKey]) ? inner : '')
+    )
+    // {{#unless field}}...{{/unless}}
+    out = out.replace(
+      /\{\{#unless\s+([a-zA-Z0-9_]+)\s*\}\}([\s\S]*?)\{\{\/unless\}\}/g,
+      (_, fieldKey, inner) => (!isTruthyField(contextObj?.[fieldKey]) ? inner : '')
+    )
+    // {{^field}}...{{/field}} (inverted Mustache section)
+    out = out.replace(
+      /\{\{\^\s*([a-zA-Z0-9_]+)\s*\}\}([\s\S]*?)\{\{\/\s*\1\s*\}\}/g,
+      (_, fieldKey, inner) => (!isTruthyField(contextObj?.[fieldKey]) ? inner : '')
+    )
+    if (out === prev) break
+  }
+  return out
+}
+
 export function hydrateCustomTemplate(templateHtml, tracker = {}, records = null) {
   let html = sanitizeCustomHtml(templateHtml)
   if (!html) return ''
@@ -58,13 +91,23 @@ export function hydrateCustomTemplate(templateHtml, tracker = {}, records = null
     totalSteps > 0 ? steps[(currentIndex + 1) % totalSteps] || '' : ''
   const lastUpdated = tracker.cycle_config?.last_updated || ''
 
-  const sourceRecords = Array.isArray(records)
+  const rawRecords = Array.isArray(records)
     ? records
     : Array.isArray(tracker.recent_records)
       ? tracker.recent_records
       : Array.isArray(tracker.records)
-        ? [...tracker.records].reverse().slice(0, 8)
+        ? [...tracker.records].reverse()
         : []
+
+  const sourceRecords = rawRecords.filter((rec) => {
+    if (!rec || typeof rec !== 'object') return false
+    if (rec.deleted === true) return false
+    return !Object.values(rec).some(
+      (v) =>
+        typeof v === 'string' &&
+        ['SUPPRIMÉ', '[SUPPRIMÉ]', 'SUPPRIME', '[SUPPRIME]'].includes(v.trim().toUpperCase())
+    )
+  })
 
   const recordCount = Number(
     tracker.record_count ?? sourceRecords.length ?? 0
@@ -78,7 +121,14 @@ export function hydrateCustomTemplate(templateHtml, tracker = {}, records = null
       return steps
         .map((stepLabel, idx) => {
           const isCurrent = idx === currentIndex
-          return innerBlock
+          const stepContext = {
+            this: stepLabel,
+            label: stepLabel,
+            index: idx + 1,
+            is_current: isCurrent ? 'is-current active' : ''
+          }
+          const withCond = evaluateConditionals(innerBlock, stepContext)
+          return withCond
             .replace(/\{\{\s*this\s*\}\}/g, escapeHtml(stepLabel))
             .replace(/\{\{\s*label\s*\}\}/g, escapeHtml(stepLabel))
             .replace(/\{\{\s*index\s*\}\}/g, String(idx + 1))
@@ -99,7 +149,8 @@ export function hydrateCustomTemplate(templateHtml, tracker = {}, records = null
       return sourceRecords
         .slice(0, 8)
         .map((rec) => {
-          return innerBlock.replace(
+          const withCond = evaluateConditionals(innerBlock, rec)
+          return withCond.replace(
             /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
             (__, fieldKey) => {
               if (fieldKey === 'this') return escapeHtml(JSON.stringify(rec))
@@ -111,13 +162,15 @@ export function hydrateCustomTemplate(templateHtml, tracker = {}, records = null
     }
   )
 
-  // 3. Replace scalar placeholders
+  // 3. Top-level conditionals & scalar placeholders
   const scalarMap = {
     id: tracker.id || '',
     display_name: tracker.display_name || tracker.id || '',
     type: tracker.type || '',
     count: recordCount,
     record_count: recordCount,
+    records: sourceRecords,
+    steps,
     current_step: currentStep,
     next_step: nextStep,
     current_index: currentIndex + 1,
@@ -125,12 +178,20 @@ export function hydrateCustomTemplate(templateHtml, tracker = {}, records = null
     last_updated: lastUpdated
   }
 
+  html = evaluateConditionals(html, scalarMap)
+
   html = html.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (match, key) => {
-    if (Object.prototype.hasOwnProperty.call(scalarMap, key)) {
+    if (
+      Object.prototype.hasOwnProperty.call(scalarMap, key) &&
+      typeof scalarMap[key] !== 'object'
+    ) {
       return escapeHtml(scalarMap[key])
     }
     return ''
   })
+
+  // 4. Final safety sweep: strip any residual Mustache/Handlebars tags so raw {{...}} never leaks to screen
+  html = html.replace(/\{\{[^}]+\}\}/g, '')
 
   return html
 }

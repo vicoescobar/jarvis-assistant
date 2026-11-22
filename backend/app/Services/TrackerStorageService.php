@@ -11,7 +11,8 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 class TrackerStorageService
 {
     public function __construct(
-        private readonly MemoryRuleService $memoryRuleService
+        private readonly MemoryRuleService $memoryRuleService,
+        private readonly CustomViewSanitizer $customViewSanitizer
     ) {}
 
     public function getUserDataPath(): string
@@ -27,7 +28,7 @@ class TrackerStorageService
     }
 
     /**
-     * List all trackers enriched with record_count and current_step.
+     * List all trackers enriched with record_count, current_step, custom_view, and recent_records.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -46,7 +47,7 @@ class TrackerStorageService
             }
 
             $records = $this->readTrackerRecords($trackerId);
-            $result[] = $this->enrichTracker($trackerId, $schema, count($records));
+            $result[] = $this->enrichTracker($trackerId, $schema, $records);
         }
 
         return $result;
@@ -68,7 +69,7 @@ class TrackerStorageService
 
         $schema = $registry['trackers'][$trackerId];
         $records = $this->readTrackerRecords($trackerId);
-        $tracker = $this->enrichTracker($trackerId, $schema, count($records));
+        $tracker = $this->enrichTracker($trackerId, $schema, $records);
         $tracker['records'] = $records;
 
         if ($includeArchive) {
@@ -76,6 +77,65 @@ class TrackerStorageService
         }
 
         return $tracker;
+    }
+
+    /**
+     * Update or toggle the custom HTML/CSS view for a tracker.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function updateCustomView(string $trackerId, array $payload): array
+    {
+        $this->validateTrackerId($trackerId);
+        $registry = $this->readRegistry();
+
+        if (! isset($registry['trackers'][$trackerId]) || ! is_array($registry['trackers'][$trackerId])) {
+            throw new NotFoundHttpException("Tracker [{$trackerId}] not found.");
+        }
+
+        $tracker = $registry['trackers'][$trackerId];
+        $existingView = is_array($tracker['custom_view'] ?? null) ? $tracker['custom_view'] : [];
+
+        $merged = [
+            'enabled' => array_key_exists('enabled', $payload)
+                ? (bool) $payload['enabled']
+                : true,
+            'html' => array_key_exists('html', $payload)
+                ? (string) $payload['html']
+                : (string) ($existingView['html'] ?? ''),
+            'css' => array_key_exists('css', $payload)
+                ? (string) $payload['css']
+                : (string) ($existingView['css'] ?? ''),
+            'updated_at' => Carbon::now()->toIso8601String(),
+        ];
+
+        $sanitizedView = $this->customViewSanitizer->sanitizeCustomView($merged);
+        $tracker['custom_view'] = $sanitizedView;
+
+        $registry['trackers'][$trackerId] = $tracker;
+        $this->writeRegistry($registry);
+
+        return [
+            'tracker_id' => $trackerId,
+            'custom_view' => $sanitizedView,
+        ];
+    }
+
+    /**
+     * Reset/remove a tracker's custom view back to the generic view.
+     */
+    public function resetCustomView(string $trackerId): void
+    {
+        $this->validateTrackerId($trackerId);
+        $registry = $this->readRegistry();
+
+        if (! isset($registry['trackers'][$trackerId]) || ! is_array($registry['trackers'][$trackerId])) {
+            throw new NotFoundHttpException("Tracker [{$trackerId}] not found.");
+        }
+
+        unset($registry['trackers'][$trackerId]['custom_view']);
+        $this->writeRegistry($registry);
     }
 
     /**
@@ -254,9 +314,10 @@ class TrackerStorageService
 
     /**
      * @param  array<string, mixed>  $schema
+     * @param  array<int, array<string, mixed>>  $records
      * @return array<string, mixed>
      */
-    private function enrichTracker(string $trackerId, array $schema, int $recordCount): array
+    private function enrichTracker(string $trackerId, array $schema, array $records): array
     {
         $currentStep = null;
         if (($schema['type'] ?? null) === 'CYCLE_STATE_MACHINE') {
@@ -267,14 +328,29 @@ class TrackerStorageService
             }
         }
 
-        return array_merge(
+        $sanitizedCustomView = isset($schema['custom_view']) && is_array($schema['custom_view'])
+            ? $this->customViewSanitizer->sanitizeCustomView($schema['custom_view'])
+            : null;
+
+        $recentRecords = array_slice(array_reverse($records), 0, 8);
+
+        $enriched = array_merge(
             ['id' => $trackerId],
             $schema,
             [
-                'record_count' => $recordCount,
+                'record_count' => count($records),
                 'current_step' => $currentStep,
+                'recent_records' => $recentRecords,
             ]
         );
+
+        if ($sanitizedCustomView !== null) {
+            $enriched['custom_view'] = $sanitizedCustomView;
+        } else {
+            unset($enriched['custom_view']);
+        }
+
+        return $enriched;
     }
 
     private function assertTrackerExists(string $trackerId): void

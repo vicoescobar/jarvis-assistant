@@ -62,6 +62,7 @@
 - `.agents/skills/sprint3-laravel-api-gateway/SKILL.md` : Laravel 11 REST API Gateway (`backend/`, Sanctum, SQLite, `user_data` & n8n webhook bridge)
 - `.agents/skills/sprint3-vue-dashboard-pwa/SKILL.md` : Dynamic Vue.js 3 + Tailwind CSS Cockpit & Android PWA (`frontend/`, `127.0.0.1:5680:80`)
 - `.agents/skills/sprint4-dashboard-refonte/SKILL.md` : Dashboard Refonte (Pastel Cream Light Theme, Trackers-First Home, Lean Voice View with Markdown/TTS, Read/Delete-only Memory View, Debug View & Gemini Live Removal)
+- `.agents/skills/sprint4-agent-custom-views/SKILL.md` : Agent-Generated Custom Tracker Views (HTML/CSS + Shadow DOM + `update_tracker_custom_view` Meta-Tool)
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram
@@ -89,6 +90,7 @@
   - **Step 3.2 (DONE):** Dynamic Vue.js 3 + Tailwind CSS Cockpit & Android PWA (`frontend/`, `jarvis-dashboard` bound to `127.0.0.1:5680` -> `https://jarvis-dashboard.victor-giroud.fr/`) featuring 100% schema-driven tracker views, LLMOps observability, memory rules manager, shared Discord/Web chat, and 1-tap voice PWA shortcut (`/?view=voice&autostart=true`).
 - **Sprint 4 (Dashboard Refonte & Optimization — DONE):**
   - **Priority 1 (DONE):** Complete removal of Gemini Live WebSocket/backend endpoints, addition of the **Pastel & Cream Light Theme** toggle (`localStorage` + dynamic PWA `theme-color`), Trackers-first home screen, ultra-lean Voice view (single exchange with Markdown rendering and clean TTS Markdown stripping), read/delete-only separated Memory view (`morning_rules` vs `custom_scopes`), and dedicated **Debug** view centralizing manual briefing triggers and LLMOps diagnostics.
+  - **Priority 2 (DONE):** Agent-Generated Custom HTML/CSS Tracker Views (`custom_view` in `trackers_registry.json`, 5th local Meta-Tool `update_tracker_custom_view` in `01-voice-agent-core.json`, `CustomViewSanitizer` + `PATCH/DELETE /api/trackers/{id}/view` in Laravel 11, and isolated Shadow DOM renderer `CustomTrackerView.vue` with live mustache templating, declarative `data-jarvis-action` buttons, and dual-theme CSS variable inheritance).
 - **Bonus / Backlog:** Real-time Discord Voice Channel (RTC) bidirectional voice assistant.
 
 ---

@@ -346,4 +346,60 @@ class JarvisApiGatewayTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'dispatched');
     }
+
+    public function test_tracker_custom_view_patch_sanitization_and_delete_reset(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        File::put($this->tempUserDataDir.'/trackers_registry.json', json_encode([
+            'trackers' => [
+                'workout_cycle' => [
+                    'display_name' => 'Cycle Sport',
+                    'type' => 'CYCLE_STATE_MACHINE',
+                    'include_in_morning_briefing' => true,
+                    'cycle_config' => [
+                        'steps' => ['Push', 'Pull', 'Legs'],
+                        'current_index' => 0,
+                        'last_updated' => '2026-11-22',
+                    ],
+                ],
+            ],
+        ]));
+        File::put($this->tempUserDataDir.'/data_workout_cycle.json', json_encode([]));
+
+        // 1. PATCH /api/trackers/{id}/view sanitizes XSS payloads (<script>, onclick, javascript:, @import)
+        $patchResponse = $this->patchJson('/api/trackers/workout_cycle/view', [
+            'enabled' => true,
+            'html' => '<div class="cv-root" onclick="alert(1)"><h3>{{display_name}}</h3><script>evil()</script><a href="javascript:alert(2)">Action</a></div>',
+            'css' => '@import url("https://evil.example/x.css"); .cv-root { color: var(--text-primary); }',
+        ]);
+
+        $patchResponse->assertOk()
+            ->assertJsonPath('tracker_id', 'workout_cycle')
+            ->assertJsonPath('custom_view.enabled', true);
+
+        $sanitizedHtml = (string) $patchResponse->json('custom_view.html');
+        $sanitizedCss = (string) $patchResponse->json('custom_view.css');
+
+        $this->assertStringNotContainsString('<script', $sanitizedHtml);
+        $this->assertStringNotContainsString('onclick', $sanitizedHtml);
+        $this->assertStringNotContainsString('javascript:', $sanitizedHtml);
+        $this->assertStringContainsString('{{display_name}}', $sanitizedHtml);
+        $this->assertStringNotContainsString('@import', $sanitizedCss);
+
+        // 2. GET /api/trackers returns custom_view
+        $this->getJson('/api/trackers')
+            ->assertOk()
+            ->assertJsonPath('trackers.0.custom_view.enabled', true);
+
+        // 3. DELETE /api/trackers/{id}/view resets custom_view
+        $this->deleteJson('/api/trackers/workout_cycle/view')
+            ->assertOk()
+            ->assertJsonPath('status', 'reset')
+            ->assertJsonPath('custom_view', null);
+
+        $this->getJson('/api/trackers/workout_cycle')
+            ->assertOk()
+            ->assertJsonMissingPath('custom_view');
+    }
 }

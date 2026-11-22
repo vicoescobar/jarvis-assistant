@@ -34,6 +34,15 @@
     --accent-rose: #C96D6D;
     --accent-rose-tint: #F8E3E3;
 
+    /* Semantic aliases inherited by Shadow DOM custom views */
+    --bg-surface: var(--bg-card);
+    --bg-subtle: var(--bg-deep);
+    --border-subtle: var(--border-hairline);
+    --pastel-sage: var(--accent-sage);
+    --pastel-lavender: var(--accent-lavender);
+    --pastel-butter: var(--accent-butter);
+    --pastel-rose: var(--accent-rose);
+
     --btn-primary-bg: #DF8A6A;
     --btn-primary-hover: #CE7858;
     --btn-primary-text: #FFFDF9;
@@ -73,6 +82,15 @@
 
     --accent-rose: #e5484d;
     --accent-rose-tint: rgba(229, 72, 77, 0.15);
+
+    /* Semantic aliases inherited by Shadow DOM custom views */
+    --bg-surface: var(--bg-card);
+    --bg-subtle: var(--bg-deep);
+    --border-subtle: var(--border-hairline);
+    --pastel-sage: var(--accent-sage);
+    --pastel-lavender: var(--accent-lavender);
+    --pastel-butter: var(--accent-butter);
+    --pastel-rose: var(--accent-rose);
 
     --btn-primary-bg: #ededed;
     --btn-primary-hover: #ffffff;

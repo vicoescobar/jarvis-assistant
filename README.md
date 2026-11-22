@@ -36,9 +36,9 @@ Plutôt que de créer une table SQL par cas d'usage, l'agent IA dispose de **4 m
 - **Concurrence fichier inter-conteneurs :** Partage du volume `user_data` sous UID/GID `1000:1000` entre `jarvis-n8n` et `jarvis-backend` avec écritures atomiques (`LOCK_EX`) et validation stricte `snake_case` anti-*path traversal*.
 - **Pont interne vers n8n :** Délégation sécurisée des commandes vocales, du déclenchement de briefing et des messages de chat sur le réseau Docker interne (`http://jarvis-n8n:5678/webhook/...`).
 
-### C. Cockpit Web & PWA Mobile Auto-Générée (`Vue.js 3` + `Tailwind CSS`)
-- **Rendu UI 100 % Schema-Driven & Accueil « Trackers-First » :** L'écran d'accueil s'ouvre directement sur les trackers dynamiques générés depuis `trackers_registry.json` (séquenceurs de cycles, formulaires typés et vues tabulaires/cartes mobiles), tandis que les outils de diagnostic et le déclenchement manuel du briefing sont centralisés dans une vue **Debug** dédiée.
-- **Double Thème Pastel & Crème (Light) / Graphite (Dark) :** Bascule instantanée dans le header avec persistance `localStorage` et mise à jour dynamique de la barre de statut PWA Android (`theme-color`).
+### C. Cockpit Web & PWA Mobile Auto-Générée (`Vue.js 3` + `Tailwind CSS` + `Shadow DOM`)
+- **Rendu UI 100 % Schema-Driven & Vues Personnalisées Générées par l'Agent (Shadow DOM) :** L'écran d'accueil s'ouvre directement sur les trackers dynamiques générés depuis `trackers_registry.json`. Chaque tracker peut utiliser la vue standard ou une **vue HTML/CSS sur-mesure générée à la voix par l'agent** (`update_tracker_custom_view`), isolée dans un **Shadow DOM** sécurisé (sanitization serveur & client anti-XSS, templating temps réel `{{current_step}}` / `{{#each records}}` et boutons déclaratifs `data-jarvis-action`).
+- **Double Thème Pastel & Crème (Light) / Graphite (Dark) :** Bascule instantanée dans le header avec persistance `localStorage`, héritage automatique des variables CSS dans le Shadow DOM et mise à jour dynamique de la barre de statut PWA Android (`theme-color`).
 - **Mode Vocal Épuré & Raccourci PWA 1-Tap (`/?view=voice&autostart=true`) :** Dictée vocale directe sans historique lourd en mémoire, affichage de la réponse formatée en Markdown et nettoyage automatique de la syntaxe Markdown avant lecture vocale TTS (`speechSynthesis`).
 
 ### D. DevOps, CI/CD & *Agentic Context Engineering*

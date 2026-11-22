@@ -20,6 +20,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::patch('/trackers/{trackerId}/records/{recordId}', [TrackerController::class, 'updateRecord']);
     Route::delete('/trackers/{trackerId}/records/{recordId}', [TrackerController::class, 'destroyRecord']);
     Route::post('/trackers/{trackerId}/cycle', [TrackerController::class, 'cycle']);
+    Route::patch('/trackers/{trackerId}/view', [TrackerController::class, 'updateView']);
+    Route::delete('/trackers/{trackerId}/view', [TrackerController::class, 'destroyView']);
 
     Route::get('/memory', [MemoryRuleController::class, 'index']);
     Route::post('/memory/rules', [MemoryRuleController::class, 'store']);

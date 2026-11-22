@@ -91,4 +91,36 @@ class TrackerController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
+
+    public function updateView(Request $request, string $trackerId): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'enabled' => ['sometimes', 'boolean'],
+                'html' => ['sometimes', 'nullable', 'string'],
+                'css' => ['sometimes', 'nullable', 'string'],
+            ]);
+
+            $result = $this->trackerStorageService->updateCustomView($trackerId, $validated);
+
+            return response()->json($result);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function destroyView(string $trackerId): JsonResponse
+    {
+        try {
+            $this->trackerStorageService->resetCustomView($trackerId);
+
+            return response()->json([
+                'status' => 'reset',
+                'tracker_id' => $trackerId,
+                'custom_view' => null,
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
 }

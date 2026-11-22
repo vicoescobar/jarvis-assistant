@@ -154,6 +154,17 @@ export const jarvisApi = {
       body: JSON.stringify(body)
     })
   },
+  updateTrackerView(trackerId, payload) {
+    return apiRequest(`/api/trackers/${encodeURIComponent(trackerId)}/view`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload)
+    })
+  },
+  resetTrackerView(trackerId) {
+    return apiRequest(`/api/trackers/${encodeURIComponent(trackerId)}/view`, {
+      method: 'DELETE'
+    })
+  },
   getMemory() {
     return apiRequest('/api/memory', { method: 'GET' })
   },

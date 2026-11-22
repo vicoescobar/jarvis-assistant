@@ -11,18 +11,18 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['open', 'updated'])
+const emit = defineEmits(['open', 'updated', 'toast'])
 
 const busy = ref(false)
 const statusNote = ref('')
 const showStandardOverride = ref(false)
 
 const hasCustomView = computed(() => {
-  return Boolean(
-    props.tracker?.custom_view?.enabled &&
-      props.tracker?.custom_view?.html &&
-      String(props.tracker.custom_view.html).trim() !== ''
-  )
+  const cv = props.tracker?.custom_view
+  if (!cv || !cv.enabled) return false
+  const hasHtml = cv.html && String(cv.html).trim() !== ''
+  const hasJs = cv.js && String(cv.js).trim() !== ''
+  return Boolean(hasHtml || hasJs)
 })
 
 const isRenderingCustomView = computed(() => {
@@ -136,7 +136,7 @@ async function handleCycleAction(action, targetIndex = null) {
         </div>
       </div>
 
-      <!-- MODE A: Isolated Shadow DOM Agent-Generated Custom View -->
+      <!-- MODE A: Isolated Sandboxed Micro-App Custom View (<iframe sandbox="allow-scripts">) -->
       <CustomTrackerView
         v-if="isRenderingCustomView"
         :tracker="tracker"
@@ -144,6 +144,9 @@ async function handleCycleAction(action, targetIndex = null) {
         :busy="busy"
         @cycle-action="(act) => handleCycleAction(act)"
         @open-detail="emit('open', tracker.id)"
+        @refresh-requested="emit('updated')"
+        @toast="(msg) => emit('toast', msg)"
+        @fallback-standard="showStandardOverride = true"
       />
 
       <!-- MODE B: Standard Generic Schema-Driven View -->

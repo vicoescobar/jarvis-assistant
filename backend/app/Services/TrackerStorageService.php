@@ -107,6 +107,9 @@ class TrackerStorageService
             'css' => array_key_exists('css', $payload)
                 ? (string) $payload['css']
                 : (string) ($existingView['css'] ?? ''),
+            'js' => array_key_exists('js', $payload)
+                ? (string) $payload['js']
+                : (string) ($existingView['js'] ?? ''),
             'updated_at' => Carbon::now()->toIso8601String(),
         ];
 
@@ -361,7 +364,7 @@ class TrackerStorageService
             ? $this->customViewSanitizer->sanitizeCustomView($schema['custom_view'])
             : null;
 
-        $recentRecords = array_slice(array_reverse($records), 0, 8);
+        $recentRecords = array_slice(array_reverse($records), 0, 200);
 
         $enriched = array_merge(
             ['id' => $trackerId],

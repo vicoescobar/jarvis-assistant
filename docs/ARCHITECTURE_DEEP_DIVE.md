@@ -99,12 +99,13 @@ sequenceDiagram
 ```
 
 #### Workflow 01 — `01-voice-agent-core.json` (`POST /webhook/voice-command`)
-Cœur opérationnel de Jarvis. Avant d'invoquer l'agent Gemini Flash, un nœud de pré-traitement lit `trackers_registry.json` et `memory_rules.json` sur le disque et les injecte dans le prompt système avec l'horodatage exact (`Europe/Paris`). L'agent dispose de **21 outils** :
-- **Les 4 Méta-Outils universels (Code Tools JavaScript accédant à `/home/node/user_data/`) :**
+Cœur opérationnel de Jarvis. Avant d'invoquer l'agent Gemini Flash, un nœud de pré-traitement lit `trackers_registry.json` et `memory_rules.json` sur le disque et les injecte dans le prompt système avec l'horodatage exact (`Europe/Paris`) ainsi que les directives du moteur de vues personnalisées (`custom_view_guidelines`). L'agent dispose de **22 outils** :
+- **Les 5 Méta-Outils universels (Code Tools JavaScript accédant à `/home/node/user_data/`) :**
   1. `create_or_update_tracker_schema` : Crée ou met à jour la définition d'un tracker (`CYCLE_STATE_MACHINE`, `COLLECTION_TABLE`, `ACTIVITY_LOG`) dans `trackers_registry.json` et initialise `data_<tracker_id>.json`.
-  2. `mutate_tracker_record` : Insère, met à jour ou supprime une entrée dans `data_<tracker_id>.json`, ou fait évoluer l'index `current_index` d'un cycle (`advance`, `skip_or_shift_cycle` avec `defaultDelta = 0`, `reset`).
+  2. `mutate_tracker_record` : Insère, met à jour ou supprime (`delete`) une entrée dans `data_<tracker_id>.json`, ou fait évoluer l'index `current_index` d'un cycle (`advance_cycle`, `skip_or_shift_cycle` avec `defaultDelta = 0`, `set_cycle_index`).
   3. `query_tracker_records` : Interroge et filtre les entrées d'un tracker par statut, ancienneté ou plage de dates.
   4. `update_memory_rule` : Ajoute, modifie ou supprime une règle dans `morning_rules` ou dans un scope dynamique `custom_scopes.<scope>` avec support des règles temporaires (`volatile: true`, `expires_at: "YYYY-MM-DD"`).
+  5. `update_tracker_custom_view` : Définit (`action: "set"`) ou réinitialise (`action: "reset"`) une micro-application personnalisée `{ enabled, html, css, js, updated_at }` pour n'importe quel tracker. Inclut une **validation syntaxique JS auto-correctrice** (`new Function('jarvis', js)`) qui rejette tout code JS invalide et retourne la liste exacte des colonnes (`available_fields`) pour que l'agent corrige son script dans le même tour.
 - **17 Outils Natifs Google Workspace :**
   - **Google Tasks (`@default`) :** Lister, créer, compléter, supprimer des tâches.
   - **Google Calendar (`primary`) :** Consulter l'agenda sur une plage horaire, créer, modifier, supprimer un événement.
@@ -173,6 +174,8 @@ Le dossier [`backend/`](../backend/) héberge une application **Laravel 11 (PHP 
 | `PATCH /api/trackers/{id}/records/{rid}` | `auth:sanctum` | `TrackerStorageService` | Met à jour partiellement une entrée existante |
 | `DELETE /api/trackers/{id}/records/{rid}` | `auth:sanctum` | `TrackerStorageService` | Supprime une entrée par son identifiant |
 | `POST /api/trackers/{id}/cycle` | `auth:sanctum` | `TrackerStorageService` | Exécute `advance`, `skip` (+ règle volatile) ou `set` sur un cycle |
+| `PATCH /api/trackers/{id}/view` | `auth:sanctum` | `TrackerStorageService` | Enregistre et nettoie (`CustomViewSanitizer`) la vue `{ enabled, html, css, js }` |
+| `DELETE /api/trackers/{id}/view` | `auth:sanctum` | `TrackerStorageService` | Réinitialise la vue personnalisée d'un tracker vers l'affichage standard |
 | `GET /api/memory` | `auth:sanctum` | `MemoryRuleService` | Retourne `morning_rules` et `custom_scopes` (après purge des expirées) |
 | `POST /api/memory/rules` | `auth:sanctum` | `MemoryRuleService` | Crée une règle permanente ou volatile (`expires_at`) |
 | `DELETE /api/memory/rules/{ruleId}` | `auth:sanctum` | `MemoryRuleService` | Supprime une règle mémoire par ID |

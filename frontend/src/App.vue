@@ -36,6 +36,17 @@ const memoryStats = ref({
 
 const loadingDashboard = ref(false)
 const dashboardError = ref('')
+const toastMessage = ref('')
+let toastTimer = null
+
+function showToast(msg) {
+  if (!msg) return
+  toastMessage.value = String(msg)
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastMessage.value = ''
+  }, 3200)
+}
 
 function parseUrlShortcuts() {
   const params = new URLSearchParams(window.location.search)
@@ -385,6 +396,7 @@ onMounted(async () => {
             :class="tracker.type === 'CYCLE_STATE_MACHINE' ? 'md:col-span-2' : ''"
             @open="(id) => (selectedTrackerId = id)"
             @updated="refreshCockpitData"
+            @toast="showToast"
           />
         </div>
       </div>
@@ -412,6 +424,15 @@ onMounted(async () => {
         @updated="refreshCockpitData"
       />
     </main>
+
+    <!-- Non-blocking Floating Toast Notification -->
+    <div
+      v-if="toastMessage"
+      class="fixed bottom-20 lg:bottom-6 right-4 sm:right-8 z-40 rounded-[10px] card-surface border hairline-border px-4 py-2.5 text-[13px] font-medium text-ink-primary shadow-md enter-fade flex items-center gap-2"
+    >
+      <span class="h-2 w-2 rounded-full bg-pastel-sage shrink-0"></span>
+      <span>{{ toastMessage }}</span>
+    </div>
 
     <!-- Mobile Translucent Bottom Navigation Bar (4 tabs: Trackers, Vocal, Mémoire, Debug) -->
     <nav

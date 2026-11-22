@@ -62,7 +62,8 @@
 - `.agents/skills/sprint3-laravel-api-gateway/SKILL.md` : Laravel 11 REST API Gateway (`backend/`, Sanctum, SQLite, `user_data` & n8n webhook bridge)
 - `.agents/skills/sprint3-vue-dashboard-pwa/SKILL.md` : Dynamic Vue.js 3 + Tailwind CSS Cockpit & Android PWA (`frontend/`, `127.0.0.1:5680:80`)
 - `.agents/skills/sprint4-dashboard-refonte/SKILL.md` : Dashboard Refonte (Pastel Cream Light Theme, Trackers-First Home, Lean Voice View with Markdown/TTS, Read/Delete-only Memory View, Debug View & Gemini Live Removal)
-- `.agents/skills/sprint4-agent-custom-views/SKILL.md` : Agent-Generated Custom Tracker Views (HTML/CSS + Shadow DOM + `update_tracker_custom_view` Meta-Tool)
+- `.agents/skills/sprint4-agent-custom-views/SKILL.md` : Agent-Generated Custom Tracker Views (HTML/CSS + `update_tracker_custom_view` Meta-Tool)
+- `.agents/skills/sprint4-sandboxed-js-views/SKILL.md` : Sandboxed HTML/CSS/JS Custom Tracker Views (`<iframe sandbox="allow-scripts">` + Generic `window.jarvis` postMessage SDK + Server-side JS Syntax Validation)
 - `.agents/skills/vps-infra-deploy/SKILL.md` : OVH VPS, Snap Docker & CloudPanel rules
 - `.github/workflows/deploy.yml` : SSH Auto-deploy to OVH VPS on push to `main`
 - `docs/achitecture.mmd` : Mermaid system diagram
@@ -90,7 +91,7 @@
   - **Step 3.2 (DONE):** Dynamic Vue.js 3 + Tailwind CSS Cockpit & Android PWA (`frontend/`, `jarvis-dashboard` bound to `127.0.0.1:5680` -> `https://jarvis-dashboard.victor-giroud.fr/`) featuring 100% schema-driven tracker views, LLMOps observability, memory rules manager, shared Discord/Web chat, and 1-tap voice PWA shortcut (`/?view=voice&autostart=true`).
 - **Sprint 4 (Dashboard Refonte & Optimization — DONE):**
   - **Priority 1 (DONE):** Complete removal of Gemini Live WebSocket/backend endpoints, addition of the **Pastel & Cream Light Theme** toggle (`localStorage` + dynamic PWA `theme-color`), Trackers-first home screen, ultra-lean Voice view (single exchange with Markdown rendering and clean TTS Markdown stripping), read/delete-only separated Memory view (`morning_rules` vs `custom_scopes`), and dedicated **Debug** view centralizing manual briefing triggers and LLMOps diagnostics.
-  - **Priority 2 (DONE):** Agent-Generated Custom HTML/CSS Tracker Views (`custom_view` in `trackers_registry.json`, 5th local Meta-Tool `update_tracker_custom_view` in `01-voice-agent-core.json`, `CustomViewSanitizer` + `PATCH/DELETE /api/trackers/{id}/view` in Laravel 11, and isolated Shadow DOM renderer `CustomTrackerView.vue` with live mustache templating, declarative `data-jarvis-action` buttons, and dual-theme CSS variable inheritance).
+  - **Priority 2 & 2.2 (DONE):** Agent-Generated Sandboxed HTML/CSS/JS Custom Tracker Views (`custom_view: { enabled, html, css, js, updated_at }` in `trackers_registry.json`, 5th local Meta-Tool `update_tracker_custom_view` in `01-voice-agent-core.json` with automatic `new Function('jarvis', js)` syntax validation, `CustomViewSanitizer` + `PATCH/DELETE /api/trackers/{id}/view` in Laravel 11 with up to 200 active records filtered of soft-deleted entries, and `<iframe sandbox="allow-scripts">` micro-app renderer `CustomTrackerView.vue` with strict `default-src 'none'` CSP, `window.jarvis` postMessage RPC SDK, auto-resize `ResizeObserver`, live dual-theme CSS variable inheritance, and read-only default `CYCLE_STATE_MACHINE` cards).
 - **Bonus / Backlog:** Real-time Discord Voice Channel (RTC) bidirectional voice assistant.
 
 ---

@@ -367,11 +367,12 @@ class JarvisApiGatewayTest extends TestCase
         ]));
         File::put($this->tempUserDataDir.'/data_workout_cycle.json', json_encode([]));
 
-        // 1. PATCH /api/trackers/{id}/view sanitizes XSS payloads (<script>, onclick, javascript:, @import)
+        // 1. PATCH /api/trackers/{id}/view stores html, css, js and strips external tags (<script src>, <iframe>, @import)
         $patchResponse = $this->patchJson('/api/trackers/workout_cycle/view', [
             'enabled' => true,
-            'html' => '<div class="cv-root" onclick="alert(1)"><h3>{{display_name}}</h3><script>evil()</script><a href="javascript:alert(2)">Action</a></div>',
-            'css' => '@import url("https://evil.example/x.css"); .cv-root { color: var(--text-primary); }',
+            'html' => '<div id="app"><h3>Cycle</h3><script src="https://evil.example/x.js"></script><iframe src="https://evil.example"></iframe><a href="javascript:alert(2)">Action</a></div>',
+            'css' => '@import url("https://evil.example/x.css"); #app { color: var(--text-primary); background: url(https://evil.example/bg.png); }',
+            'js' => '<script>function render() { document.getElementById("app").textContent = jarvis.tracker.display_name; } render(); jarvis.onUpdate(render);</script>',
         ]);
 
         $patchResponse->assertOk()
@@ -380,17 +381,22 @@ class JarvisApiGatewayTest extends TestCase
 
         $sanitizedHtml = (string) $patchResponse->json('custom_view.html');
         $sanitizedCss = (string) $patchResponse->json('custom_view.css');
+        $sanitizedJs = (string) $patchResponse->json('custom_view.js');
 
         $this->assertStringNotContainsString('<script', $sanitizedHtml);
-        $this->assertStringNotContainsString('onclick', $sanitizedHtml);
+        $this->assertStringNotContainsString('<iframe', $sanitizedHtml);
         $this->assertStringNotContainsString('javascript:', $sanitizedHtml);
-        $this->assertStringContainsString('{{display_name}}', $sanitizedHtml);
+        $this->assertStringContainsString('<div id="app">', $sanitizedHtml);
         $this->assertStringNotContainsString('@import', $sanitizedCss);
+        $this->assertStringNotContainsString('https://evil.example/bg.png', $sanitizedCss);
+        $this->assertStringNotContainsString('<script>', $sanitizedJs);
+        $this->assertStringContainsString('jarvis.onUpdate(render)', $sanitizedJs);
 
-        // 2. GET /api/trackers returns custom_view
+        // 2. GET /api/trackers returns custom_view with js
         $this->getJson('/api/trackers')
             ->assertOk()
-            ->assertJsonPath('trackers.0.custom_view.enabled', true);
+            ->assertJsonPath('trackers.0.custom_view.enabled', true)
+            ->assertJsonPath('trackers.0.custom_view.js', 'function render() { document.getElementById("app").textContent = jarvis.tracker.display_name; } render(); jarvis.onUpdate(render);');
 
         // 3. DELETE /api/trackers/{id}/view resets custom_view
         $this->deleteJson('/api/trackers/workout_cycle/view')

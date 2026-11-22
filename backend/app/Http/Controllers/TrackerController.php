@@ -97,8 +97,9 @@ class TrackerController extends Controller
         try {
             $validated = $request->validate([
                 'enabled' => ['sometimes', 'boolean'],
-                'html' => ['sometimes', 'nullable', 'string'],
-                'css' => ['sometimes', 'nullable', 'string'],
+                'html' => ['sometimes', 'nullable', 'string', 'max:24576'],
+                'css' => ['sometimes', 'nullable', 'string', 'max:12288'],
+                'js' => ['sometimes', 'nullable', 'string', 'max:24576'],
             ]);
 
             $result = $this->trackerStorageService->updateCustomView($trackerId, $validated);

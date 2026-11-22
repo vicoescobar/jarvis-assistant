@@ -682,7 +682,7 @@ watch(
 
     <iframe
       ref="iframeRef"
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-modals"
       :srcdoc="srcdoc"
       :title="`Vue personnalisée ${tracker.display_name || tracker.id}`"
       class="w-full border-0 block bg-transparent transition-[height] duration-150 ease-out"

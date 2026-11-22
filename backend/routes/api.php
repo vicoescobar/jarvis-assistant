@@ -29,6 +29,4 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/jarvis/chat/history', [JarvisController::class, 'chatHistory']);
     Route::post('/jarvis/chat', [JarvisController::class, 'chat']);
     Route::post('/jarvis/briefing/trigger', [JarvisController::class, 'triggerBriefing']);
-    Route::post('/jarvis/live/session', [JarvisController::class, 'liveSession']);
-    Route::post('/jarvis/live/tool', [JarvisController::class, 'liveTool']);
 });

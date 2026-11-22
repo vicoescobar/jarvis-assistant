@@ -187,19 +187,5 @@ export const jarvisApi = {
     return apiRequest('/api/jarvis/briefing/trigger', {
       method: 'POST'
     })
-  },
-  createLiveSession() {
-    return apiRequest('/api/jarvis/live/session', {
-      method: 'POST'
-    })
-  },
-  executeLiveTool(toolName, args = {}) {
-    return apiRequest('/api/jarvis/live/tool', {
-      method: 'POST',
-      body: JSON.stringify({
-        tool_name: toolName,
-        arguments: args
-      })
-    })
   }
 }

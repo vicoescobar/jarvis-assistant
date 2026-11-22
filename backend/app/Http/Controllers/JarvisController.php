@@ -4,16 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\JarvisChatRequest;
 use App\Http\Requests\JarvisCommandRequest;
-use App\Http\Requests\JarvisLiveToolRequest;
-use App\Services\GeminiLiveService;
 use App\Services\N8nGatewayService;
 use Illuminate\Http\JsonResponse;
 
 class JarvisController extends Controller
 {
     public function __construct(
-        private readonly N8nGatewayService $n8nGatewayService,
-        private readonly GeminiLiveService $geminiLiveService
+        private readonly N8nGatewayService $n8nGatewayService
     ) {}
 
     public function command(JarvisCommandRequest $request): JsonResponse
@@ -45,25 +42,6 @@ class JarvisController extends Controller
     public function triggerBriefing(): JsonResponse
     {
         $result = $this->n8nGatewayService->triggerMorningBriefing();
-
-        return response()->json($result);
-    }
-
-    public function liveSession(): JsonResponse
-    {
-        $session = $this->geminiLiveService->createSession();
-
-        return response()->json($session);
-    }
-
-    public function liveTool(JarvisLiveToolRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        $result = $this->geminiLiveService->executeTool(
-            toolName: $validated['tool_name'],
-            arguments: $validated['arguments'] ?? []
-        );
 
         return response()->json($result);
     }

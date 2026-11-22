@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jarvis-cockpit-v4'
+const CACHE_NAME = 'jarvis-cockpit-v5'
 const STATIC_ASSETS = [
   '/',
   '/index.html',

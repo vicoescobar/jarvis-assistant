@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     './index.html',
     './src/**/*.{vue,js,ts,jsx,tsx}'
@@ -8,24 +9,35 @@ export default {
     extend: {
       colors: {
         graphite: {
-          deep: '#0f0f10',
-          bg: '#141415',
-          card: '#19191b',
-          raised: '#232325',
-          hover: '#2b2b2e'
+          deep: 'var(--bg-deep)',
+          bg: 'var(--bg-canvas)',
+          card: 'var(--bg-card)',
+          raised: 'var(--bg-raised)',
+          hover: 'var(--bg-hover)'
         },
         ink: {
-          primary: '#ededed',
-          secondary: '#a1a1a6',
-          muted: '#85858b'
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)'
         },
         accent: {
-          DEFAULT: '#e56b38',
-          hover: '#f07844'
+          DEFAULT: 'var(--accent-primary)',
+          hover: 'var(--accent-primary-hover)',
+          tint: 'var(--accent-primary-tint)'
+        },
+        pastel: {
+          sage: 'var(--accent-sage)',
+          'sage-tint': 'var(--accent-sage-tint)',
+          lavender: 'var(--accent-lavender)',
+          'lavender-tint': 'var(--accent-lavender-tint)',
+          butter: 'var(--accent-butter)',
+          'butter-tint': 'var(--accent-butter-tint)',
+          rose: 'var(--accent-rose)',
+          'rose-tint': 'var(--accent-rose-tint)'
         },
         semantic: {
-          positive: '#4cc38a',
-          negative: '#e5484d'
+          positive: 'var(--accent-sage)',
+          negative: 'var(--accent-rose)'
         }
       },
       fontFamily: {

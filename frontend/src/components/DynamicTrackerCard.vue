@@ -62,7 +62,7 @@ async function handleCycleAction(action, targetIndex = null) {
 
 <template>
   <article
-    class="rounded-[14px] sm:rounded-[12px] bg-graphite-card border hairline-border p-5 flex flex-col justify-between gap-5"
+    class="rounded-[14px] sm:rounded-[12px] card-surface p-5 flex flex-col justify-between gap-5"
   >
     <div class="space-y-4">
       <!-- Top meta row -->
@@ -76,7 +76,7 @@ async function handleCycleAction(action, targetIndex = null) {
             <span class="text-ink-muted/50">·</span>
             <span class="font-mono meta-mono truncate">{{ tracker.id }}</span>
           </div>
-          <h3 class="mt-1.5 text-[18px] sm:text-[16px] leading-[24px] sm:leading-[22px] font-medium text-ink-primary truncate">
+          <h3 class="mt-1.5 text-[18px] sm:text-[16px] leading-[24px] sm:leading-[22px] font-medium text-ink-primary text-balance">
             {{ tracker.display_name || tracker.id }}
           </h3>
         </div>
@@ -84,16 +84,16 @@ async function handleCycleAction(action, targetIndex = null) {
         <div class="flex items-center gap-2 shrink-0">
           <span
             v-if="tracker.include_in_morning_briefing"
-            class="inline-flex items-center gap-1.5 text-[13px] sm:text-xs font-mono meta-mono text-ink-muted"
+            class="inline-flex items-center gap-1.5 rounded-[6px] bg-pastel-sage-tint px-2 py-0.5 text-[12px] font-mono meta-mono text-pastel-sage"
             title="Inclus dans le briefing de 08:30"
           >
-            <span class="h-2 w-2 sm:h-1.5 sm:w-1.5 rounded-full bg-semantic-positive"></span>
+            <span class="h-1.5 w-1.5 rounded-full bg-pastel-sage"></span>
             08:30
           </span>
         </div>
       </div>
 
-      <!-- MOMENT 1: Tactile Cycle Step-Sequencer Rail -->
+      <!-- Tactile Cycle Step-Sequencer Rail -->
       <div
         v-if="tracker.type === 'CYCLE_STATE_MACHINE'"
         class="rounded-[10px] sm:rounded-[8px] bg-graphite-deep border hairline-border p-4 sm:p-3.5 space-y-3.5"
@@ -102,7 +102,7 @@ async function handleCycleAction(action, targetIndex = null) {
           <div class="min-w-0">
             <div class="text-[13px] sm:text-xs text-ink-muted">Étape en cours</div>
             <div class="mt-1 text-[20px] sm:text-[18px] leading-[26px] sm:leading-[24px] font-medium text-ink-primary flex items-center gap-2.5">
-              <span class="h-2.5 w-2.5 sm:h-2 sm:w-2 rounded-full bg-accent shrink-0"></span>
+              <span class="h-2.5 w-2.5 sm:h-2 sm:w-2 rounded-full bg-pastel-sage shrink-0"></span>
               <span class="truncate">{{ tracker.current_step || cycleSteps[currentIndex] || 'Aucune étape' }}</span>
             </div>
           </div>
@@ -114,7 +114,6 @@ async function handleCycleAction(action, targetIndex = null) {
           </span>
         </div>
 
-        <!-- Physical Step Rail: 2 columns on mobile with 56px height for easy thumb tapping, 4 on sm+ -->
         <div
           v-if="cycleSteps.length"
           class="grid grid-cols-2 sm:grid-cols-4 gap-2"
@@ -124,11 +123,11 @@ async function handleCycleAction(action, targetIndex = null) {
             :key="idx"
             type="button"
             :disabled="busy"
-            class="pressable min-h-[56px] sm:min-h-[44px] text-left rounded-[8px] sm:rounded-[6px] px-3.5 py-2.5 sm:px-3 sm:py-2 border flex flex-col justify-between"
+            class="pressable min-h-[56px] sm:min-h-[44px] text-left rounded-[8px] sm:rounded-[6px] px-3.5 py-2.5 sm:px-3 sm:py-2 border flex flex-col justify-between disabled:opacity-50"
             :class="
               idx === currentIndex
-                ? 'surface-raised text-ink-primary border-[#ededed]/20'
-                : 'bg-graphite-bg/70 border-transparent text-ink-muted hover:text-ink-secondary hover:bg-graphite-raised/50'
+                ? 'bg-graphite-card text-ink-primary border-pastel-sage/50 shadow-sm'
+                : 'bg-graphite-bg/70 border-transparent text-ink-muted hover:text-ink-secondary hover:bg-graphite-card/60'
             "
             @click="handleCycleAction('set', idx)"
           >
@@ -136,7 +135,7 @@ async function handleCycleAction(action, targetIndex = null) {
               <span>0{{ idx + 1 }}</span>
               <span
                 class="h-2 w-2 sm:h-1.5 sm:w-1.5 rounded-full"
-                :class="idx === currentIndex ? 'bg-accent' : 'bg-ink-muted/30'"
+                :class="idx === currentIndex ? 'bg-pastel-sage' : 'bg-ink-muted/30'"
               ></span>
             </div>
             <div class="mt-1 text-[15px] sm:text-xs font-medium truncate w-full">
@@ -173,7 +172,7 @@ async function handleCycleAction(action, targetIndex = null) {
       </p>
     </div>
 
-    <!-- Bottom controls: 48px touch height on mobile, 36px on desktop -->
+    <!-- Bottom controls -->
     <div class="flex items-center gap-2.5 pt-3.5 border-t hairline-border">
       <template v-if="tracker.type === 'CYCLE_STATE_MACHINE'">
         <button
@@ -182,7 +181,7 @@ async function handleCycleAction(action, targetIndex = null) {
           class="btn-primary h-12 sm:h-9 flex-1 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40"
           @click="handleCycleAction('advance')"
         >
-          <span>Avancer</span>
+          <span>{{ busy ? 'Mise à jour…' : 'Avancer' }}</span>
           <AppIcon name="arrow-right" />
         </button>
         <button
@@ -197,7 +196,8 @@ async function handleCycleAction(action, targetIndex = null) {
         </button>
         <button
           type="button"
-          class="btn-secondary h-12 sm:h-9 min-w-[48px] sm:min-w-[36px] rounded-[10px] sm:rounded-[8px] px-3 text-[15px] sm:text-xs font-mono meta-mono text-ink-secondary"
+          :disabled="busy"
+          class="btn-secondary h-12 sm:h-9 min-w-[48px] sm:min-w-[36px] rounded-[10px] sm:rounded-[8px] px-3 text-[15px] sm:text-xs font-mono meta-mono text-ink-secondary disabled:opacity-40"
           title="Inspecter l'historique"
           @click="emit('open', tracker.id)"
         >

@@ -180,8 +180,6 @@ Le dossier [`backend/`](../backend/) héberge une application **Laravel 11 (PHP 
 | `GET /api/jarvis/chat/history` | `auth:sanctum` | `N8nGatewayService` | Lit l'historique partagé `discord_chat_history.json` |
 | `POST /api/jarvis/chat` | `auth:sanctum` | `N8nGatewayService` | Envoie un message au workflow `04-discord-chatbot` |
 | `POST /api/jarvis/briefing/trigger` | `auth:sanctum` | `N8nGatewayService` | Déclenche immédiatement le briefing matinal `02-morning-briefing` |
-| `POST /api/jarvis/live/session` | `auth:sanctum` | `GeminiLiveService` | Émet la configuration et le jeton WebSocket Gemini Live |
-| `POST /api/jarvis/live/tool` | `auth:sanctum` | `GeminiLiveService` | Exécute en temps réel un `functionCall` déclenché par Gemini Live |
 
 ---
 

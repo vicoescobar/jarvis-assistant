@@ -1,19 +1,33 @@
 <!DOCTYPE html>
-<html lang="fr" class="dark">
+<html lang="fr" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#141415" />
+    <meta name="theme-color" content="#FAF6F0" />
     <meta name="description" content="Jarvis — Poste de commande exécutif, trackers dynamiques et orchestrateur n8n" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="icon" type="image/svg+xml" href="/jarvis-icon.svg" />
     <link rel="apple-touch-icon" href="/jarvis-icon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Jarvis</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('jarvis_theme') || 'light';
+          var root = document.documentElement;
+          root.setAttribute('data-theme', saved);
+          if (saved === 'dark') {
+            root.classList.add('dark');
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', '#141415');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body class="bg-[#141415] text-[#ededed] antialiased selection:bg-[#e56b38] selection:text-[#141415]">
+  <body class="antialiased selection:bg-accent selection:text-white">
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

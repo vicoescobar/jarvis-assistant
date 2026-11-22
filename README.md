@@ -1,12 +1,12 @@
 # Jarvis Assistant — Event-Driven AI Orchestrator & Schema-less Personal Cockpit
 
-> **Plateforme d'orchestration IA auto-hébergée, extensible à chaud par commandes vocales et textuelles (*Schema-less Dynamic Trackers Engine*), combinant workflows événementiels (`n8n`), passerelle REST (`Laravel 11`), streaming vocal bidirectionnel temps réel (`Gemini Live WebSocket`) et cockpit Web/PWA (`Vue.js 3`).**
+> **Plateforme d'orchestration IA auto-hébergée, extensible à chaud par commandes vocales et textuelles (*Schema-less Dynamic Trackers Engine*), combinant workflows événementiels (`n8n`), passerelle REST (`Laravel 11`) et cockpit Web/PWA (`Vue.js 3` avec thème Pastel & Crème / Graphite).**
 
 [![CI/CD Deploy](https://img.shields.io/badge/CI%2FCD-GitHub_Actions_SSH-2088FF?logo=githubactions&logoColor=white)](.github/workflows/deploy.yml)
 [![Orchestrator](https://img.shields.io/badge/Orchestrator-n8n_Self--Hosted-EA4B71?logo=n8n&logoColor=white)](workflows/)
 [![Backend](https://img.shields.io/badge/API_Gateway-Laravel_11_%2F_PHP_8.3-FF2D20?logo=laravel&logoColor=white)](backend/)
 [![Frontend](https://img.shields.io/badge/Cockpit_%26_PWA-Vue.js_3_%2F_Vite-4FC08D?logo=vuedotjs&logoColor=white)](frontend/)
-[![AI Engine](https://img.shields.io/badge/LLM_%26_Voice-Google_Gemini_Flash_%26_Live_API-4285F4?logo=google&logoColor=white)](backend/app/Services/GeminiLiveService.php)
+[![AI Engine](https://img.shields.io/badge/LLM-Google_Gemini_Flash-4285F4?logo=google&logoColor=white)](workflows/)
 
 ---
 
@@ -31,15 +31,15 @@ Plutôt que de créer une table SQL par cas d'usage, l'agent IA dispose de **4 m
 - **`COLLECTION_TABLE`** : Tables structurées à typage dynamique (ex. CRM freelance, suivi de candidatures, devis) avec filtrage et préservation des entrées actives lors des archivages.
 - **`ACTIVITY_LOG`** : Journaux horodatés (ex. sessions de veille, heures de pratique, lectures) compressés mensuellement par LLM au-delà de 30 jours (`archive_<id>.json`).
 
-### B. Passerelle API REST Low-RAM & Streaming Vocal Temps Réel (`Laravel 11` + `Gemini Live`)
+### B. Passerelle API REST Low-RAM (`Laravel 11` + `Sanctum` + `SQLite`)
 - **Empreinte mémoire optimisée (< 80 Mo RAM au repos) :** Conteneur Alpine combinant **PHP 8.3-FPM (`pm = ondemand`)**, **Nginx** et **SQLite** (authentification **Laravel Sanctum** sans serveur SGBD lourd).
 - **Concurrence fichier inter-conteneurs :** Partage du volume `user_data` sous UID/GID `1000:1000` entre `jarvis-n8n` et `jarvis-backend` avec écritures atomiques (`LOCK_EX`) et validation stricte `snake_case` anti-*path traversal*.
-- **Sécurité WebSocket Gemini Live :** Émission côté serveur de sessions éphémères (`POST /api/jarvis/live/session`) avec auto-découverte des modèles supportant `bidiGenerateContent` et injection à chaud du contexte utilisateur, sans jamais exposer `GEMINI_API_KEY` dans le bundle frontend.
+- **Pont interne vers n8n :** Délégation sécurisée des commandes vocales, du déclenchement de briefing et des messages de chat sur le réseau Docker interne (`http://jarvis-n8n:5678/webhook/...`).
 
 ### C. Cockpit Web & PWA Mobile Auto-Générée (`Vue.js 3` + `Tailwind CSS`)
-- **Rendu UI 100 % Schema-Driven :** Les composants Vue inspectent `trackers_registry.json` via l'API et génèrent dynamiquement les séquenceurs de cycles, les formulaires typés et les vues tabulaires/cartes mobiles.
-- **Audio Bidirectionnel WebAudio (16 kHz / 24 kHz PCM) :** Capture micro via `AudioWorkletNode`, lecture audio *gapless*, détection d'interruption vocale instantanée (*barge-in*), et exécution d'outils en temps réel (`POST /api/jarvis/live/tool`).
-- **Raccourci PWA Android 1-Tap (`/?view=voice&autostart=true`) :** Ouvre directement le canal vocal depuis l'écran d'accueil mobile et active le microphone instantanément.
+- **Rendu UI 100 % Schema-Driven & Accueil « Trackers-First » :** L'écran d'accueil s'ouvre directement sur les trackers dynamiques générés depuis `trackers_registry.json` (séquenceurs de cycles, formulaires typés et vues tabulaires/cartes mobiles), tandis que les outils de diagnostic et le déclenchement manuel du briefing sont centralisés dans une vue **Debug** dédiée.
+- **Double Thème Pastel & Crème (Light) / Graphite (Dark) :** Bascule instantanée dans le header avec persistance `localStorage` et mise à jour dynamique de la barre de statut PWA Android (`theme-color`).
+- **Mode Vocal Épuré & Raccourci PWA 1-Tap (`/?view=voice&autostart=true`) :** Dictée vocale directe sans historique lourd en mémoire, affichage de la réponse formatée en Markdown et nettoyage automatique de la syntaxe Markdown avant lecture vocale TTS (`speechSynthesis`).
 
 ### D. DevOps, CI/CD & *Agentic Context Engineering*
 - **Isolation Réseau & SSL :** Les 3 services exposés (`jarvis-n8n`, `jarvis-backend`, `jarvis-dashboard`) écoutent exclusivement sur l'interface loopback `127.0.0.1` (`5678`, `5679`, `5680`) derrière un Reverse Proxy Nginx/CloudPanel avec terminaison SSL Let's Encrypt.
@@ -86,8 +86,7 @@ flowchart TB
     CHAT <-->|"Messages & Notes Vocales #chatbot"| DBRIDGE
     DBRIDGE <-->|"POST /webhook/discord-chat"| N8N
     PWA <-->|"HTTPS SPA & Service Worker"| DASH
-    PWA <-->|"REST API + Live Session/Tools (Bearer Sanctum)"| API
-    PWA <-->|"Bidi WebSocket PCM 16kHz/24kHz (Gemini Live)"| GEMINI
+    PWA <-->|"REST API (Bearer Sanctum)"| API
     API <-->|"Auth & Tokens"| SQLITE
     API <-->|"Lecture / Écriture atomique LOCK_EX"| USERDATA
     API <-->|"Proxy interne /webhook/*"| N8N

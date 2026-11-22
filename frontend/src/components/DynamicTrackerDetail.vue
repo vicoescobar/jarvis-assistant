@@ -19,9 +19,9 @@ const includeArchive = ref(false)
 const searchQuery = ref('')
 const error = ref('')
 const submitting = ref(false)
+const deletingId = ref('')
 const formValues = reactive({})
 
-// Apple Direct Manipulation 1:1 Drag & Spring controller strictly bound to the top drag pill bar
 const sheetEl = ref(null)
 const dragOffsetY = ref(0)
 const isDragging = ref(false)
@@ -182,6 +182,8 @@ async function handleCreateRecord() {
 }
 
 async function handleDeleteRecord(recordId) {
+  if (deletingId.value) return
+  deletingId.value = recordId
   error.value = ''
   try {
     await jarvisApi.deleteRecord(props.trackerId, recordId)
@@ -189,10 +191,13 @@ async function handleDeleteRecord(recordId) {
     emit('updated')
   } catch (err) {
     error.value = err.message || 'Suppression refusée'
+  } finally {
+    deletingId.value = ''
   }
 }
 
 async function handleCycleMutation(action, targetIndex = null) {
+  if (submitting.value) return
   submitting.value = true
   error.value = ''
   try {
@@ -236,15 +241,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- Inline card on both Mobile and Desktop so page touch scrolling is 100% natural, plus drag pill bar for quick dismiss -->
   <section
     ref="sheetEl"
-    class="rounded-[16px] bg-graphite-card border hairline-border p-5 sm:p-6 space-y-5 will-change-transform"
+    class="rounded-[16px] card-surface p-5 sm:p-6 space-y-5 will-change-transform"
     :style="{
       transform: `translate3d(0, ${dragOffsetY}px, 0)`
     }"
   >
-    <!-- Dedicated drag handle pill (only this bar captures drag so content scrolls freely on touch) -->
+    <!-- Dedicated drag handle pill -->
     <div
       class="py-2 -mt-2 cursor-grab active:cursor-grabbing select-none touch-none flex justify-center"
       @pointerdown="onPointerDown"
@@ -262,7 +266,7 @@ onBeforeUnmount(() => {
           <span>·</span>
           <span class="truncate">{{ trackerId }}</span>
         </div>
-        <h2 class="mt-1 text-[20px] leading-[26px] font-medium text-ink-primary truncate">
+        <h2 class="mt-1 text-[20px] leading-[26px] font-medium text-ink-primary text-balance">
           {{ tracker?.display_name || trackerId }}
         </h2>
       </div>
@@ -272,7 +276,7 @@ onBeforeUnmount(() => {
           <input
             v-model="includeArchive"
             type="checkbox"
-            class="h-5 w-5 sm:h-4 sm:w-4 rounded-[4px] border-ink-muted/40 bg-graphite-deep accent-[#ededed]"
+            class="h-5 w-5 sm:h-4 sm:w-4 rounded-[4px] border-ink-muted/40 bg-graphite-deep accent-accent"
           />
           <span>Archives</span>
         </label>
@@ -290,7 +294,7 @@ onBeforeUnmount(() => {
 
     <div
       v-if="error"
-      class="rounded-[8px] bg-graphite-deep border border-semantic-negative/40 px-4 py-3 text-[14px] sm:text-xs text-semantic-negative"
+      class="rounded-[8px] bg-pastel-rose-tint border border-pastel-rose/40 px-4 py-3 text-[14px] sm:text-xs text-pastel-rose"
     >
       {{ error }}
     </div>
@@ -304,7 +308,7 @@ onBeforeUnmount(() => {
         <div>
           <span class="text-[13px] sm:text-xs text-ink-muted">Étape active du cycle</span>
           <div class="mt-0.5 text-[20px] sm:text-[18px] leading-[26px] font-medium text-ink-primary flex items-center gap-2">
-            <span class="h-2.5 w-2.5 rounded-full bg-accent"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-pastel-sage"></span>
             <span>{{ tracker.current_step }}</span>
           </div>
         </div>
@@ -312,7 +316,7 @@ onBeforeUnmount(() => {
           <button
             type="button"
             :disabled="submitting"
-            class="btn-primary h-12 sm:h-9 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2"
+            class="btn-primary h-12 sm:h-9 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40"
             @click="handleCycleMutation('advance')"
           >
             <span>Avancer (+1)</span>
@@ -321,7 +325,7 @@ onBeforeUnmount(() => {
           <button
             type="button"
             :disabled="submitting"
-            class="btn-secondary h-12 sm:h-9 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2"
+            class="btn-secondary h-12 sm:h-9 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40"
             @click="handleCycleMutation('skip')"
           >
             <AppIcon name="pause" />
@@ -336,10 +340,10 @@ onBeforeUnmount(() => {
           :key="idx"
           type="button"
           :disabled="submitting"
-          class="pressable h-12 sm:h-9 rounded-[8px] sm:rounded-[6px] px-3.5 text-[15px] sm:text-xs font-medium border text-left sm:text-center truncate"
+          class="pressable h-12 sm:h-9 rounded-[8px] sm:rounded-[6px] px-3.5 text-[15px] sm:text-xs font-medium border text-left sm:text-center truncate disabled:opacity-50"
           :class="
             idx === Number(tracker.cycle_config?.current_index ?? 0)
-              ? 'surface-raised text-ink-primary'
+              ? 'bg-graphite-card text-ink-primary border-pastel-sage/50'
               : 'bg-graphite-bg border-transparent text-ink-muted hover:text-ink-primary'
           "
           @click="handleCycleMutation('set', idx)"
@@ -381,7 +385,7 @@ onBeforeUnmount(() => {
             "
             :required="Boolean(field.required)"
             :placeholder="field.name"
-            class="h-12 sm:h-9 w-full rounded-[10px] sm:rounded-[8px] border hairline-border bg-graphite-bg px-3.5 text-[16px] sm:text-sm text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
+            class="h-12 sm:h-9 w-full rounded-[10px] sm:rounded-[8px] border hairline-border bg-graphite-card px-3.5 text-[16px] sm:text-sm text-ink-primary placeholder:text-ink-muted focus:border-accent focus:outline-none"
           />
         </div>
       </div>
@@ -393,12 +397,12 @@ onBeforeUnmount(() => {
           class="btn-primary h-12 sm:h-9 w-full sm:w-auto rounded-[10px] sm:rounded-[8px] px-5 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40"
         >
           <AppIcon name="plus" />
-          <span>Ajouter l’entrée</span>
+          <span>{{ submitting ? 'Enregistrement…' : 'Ajouter l’entrée' }}</span>
         </button>
       </div>
     </form>
 
-    <!-- Active Records List: Stacked Cards on Mobile (< sm), Table on Desktop (sm+) -->
+    <!-- Active Records List -->
     <div class="space-y-3.5">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-center gap-2">
@@ -418,13 +422,14 @@ onBeforeUnmount(() => {
             v-model="searchQuery"
             type="search"
             placeholder="Rechercher"
-            class="h-12 sm:h-9 w-full rounded-[10px] sm:rounded-[8px] border hairline-border bg-graphite-deep pl-10 pr-3.5 text-[16px] sm:text-xs text-ink-primary placeholder:text-ink-muted focus:border-[#ededed]/30 focus:outline-none"
+            class="h-12 sm:h-9 w-full rounded-[10px] sm:rounded-[8px] border hairline-border bg-graphite-deep pl-10 pr-3.5 text-[16px] sm:text-xs text-ink-primary placeholder:text-ink-muted focus:border-accent focus:outline-none"
           />
         </div>
       </div>
 
-      <div v-if="loading" class="text-[14px] sm:text-xs text-ink-muted py-4">
-        Lecture de data_{{ trackerId }}.json
+      <div v-if="loading" class="space-y-2.5 py-2">
+        <div class="h-12 rounded-[10px] skeleton-block"></div>
+        <div class="h-12 rounded-[10px] skeleton-block"></div>
       </div>
 
       <div
@@ -452,7 +457,7 @@ onBeforeUnmount(() => {
               </span>
               <span
                 class="text-ink-primary text-right break-words font-medium"
-                :class="field.type === 'number' ? 'font-mono meta-mono' : ''"
+                :class="field.type === 'number' || field.type === 'date' ? 'font-mono meta-mono' : ''"
               >
                 {{ rec[field.name] ?? '—' }}
               </span>
@@ -462,11 +467,12 @@ onBeforeUnmount(() => {
               <span>{{ (rec.updated_at || rec.created_at || '').slice(0, 16).replace('T', ' ') }}</span>
               <button
                 type="button"
-                class="pressable h-10 px-3.5 rounded-[8px] bg-graphite-raised text-ink-primary hover:text-semantic-negative inline-flex items-center gap-2 text-[14px]"
+                :disabled="deletingId === rec.id"
+                class="pressable h-10 px-3.5 rounded-[8px] bg-pastel-rose-tint text-pastel-rose inline-flex items-center gap-2 text-[14px] disabled:opacity-40"
                 @click="handleDeleteRecord(rec.id)"
               >
                 <AppIcon name="trash" />
-                <span>Supprimer</span>
+                <span>{{ deletingId === rec.id ? 'Suppression…' : 'Supprimer' }}</span>
               </button>
             </div>
           </div>
@@ -474,7 +480,7 @@ onBeforeUnmount(() => {
 
         <!-- Desktop Aligned Table (sm+) -->
         <div class="hidden sm:block overflow-x-auto rounded-[12px] border hairline-border">
-          <table class="min-w-full divide-y divide-[#ededed]/[0.06] text-left text-xs">
+          <table class="min-w-full divide-y hairline-border text-left text-xs">
             <thead class="bg-graphite-deep text-ink-muted font-mono meta-mono">
               <tr>
                 <th
@@ -488,7 +494,7 @@ onBeforeUnmount(() => {
                 <th class="px-3.5 py-2.5 font-normal text-right">Action</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#ededed]/[0.06] bg-graphite-card">
+            <tbody class="divide-y hairline-border bg-graphite-card">
               <tr
                 v-for="rec in filteredRecords"
                 :key="rec.id"
@@ -498,7 +504,7 @@ onBeforeUnmount(() => {
                   v-for="field in fieldsSchema"
                   :key="field.name"
                   class="px-3.5 py-2.5 text-ink-primary"
-                  :class="field.type === 'number' ? 'font-mono meta-mono text-right' : ''"
+                  :class="field.type === 'number' ? 'font-mono meta-mono text-right' : field.type === 'date' ? 'font-mono meta-mono' : ''"
                 >
                   {{ rec[field.name] ?? '—' }}
                 </td>
@@ -508,11 +514,12 @@ onBeforeUnmount(() => {
                 <td class="px-3.5 py-2.5 text-right">
                   <button
                     type="button"
-                    class="pressable inline-flex items-center gap-1 text-ink-muted hover:text-semantic-negative font-mono meta-mono"
+                    :disabled="deletingId === rec.id"
+                    class="pressable inline-flex items-center gap-1 text-pastel-rose hover:opacity-80 font-mono meta-mono disabled:opacity-40"
                     @click="handleDeleteRecord(rec.id)"
                   >
                     <AppIcon name="trash" />
-                    <span>Supprimer</span>
+                    <span>{{ deletingId === rec.id ? '…' : 'Supprimer' }}</span>
                   </button>
                 </td>
               </tr>

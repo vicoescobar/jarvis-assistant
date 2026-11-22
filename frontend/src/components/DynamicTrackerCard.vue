@@ -173,18 +173,15 @@ async function handleCycleAction(action, targetIndex = null) {
             v-if="cycleSteps.length"
             class="grid grid-cols-2 sm:grid-cols-4 gap-2"
           >
-            <button
+            <div
               v-for="(step, idx) in cycleSteps"
               :key="idx"
-              type="button"
-              :disabled="busy"
-              class="pressable min-h-[56px] sm:min-h-[44px] text-left rounded-[8px] sm:rounded-[6px] px-3.5 py-2.5 sm:px-3 sm:py-2 border flex flex-col justify-between disabled:opacity-50"
+              class="min-h-[56px] sm:min-h-[44px] text-left rounded-[8px] sm:rounded-[6px] px-3.5 py-2.5 sm:px-3 sm:py-2 border flex flex-col justify-between"
               :class="
                 idx === currentIndex
                   ? 'bg-graphite-card text-ink-primary border-pastel-sage/50 shadow-sm'
-                  : 'bg-graphite-bg/70 border-transparent text-ink-muted hover:text-ink-secondary hover:bg-graphite-card/60'
+                  : 'bg-graphite-bg/70 border-transparent text-ink-muted'
               "
-              @click="handleCycleAction('set', idx)"
             >
               <div class="flex items-center justify-between text-xs sm:text-[11px] font-mono meta-mono w-full">
                 <span>0{{ idx + 1 }}</span>
@@ -196,7 +193,7 @@ async function handleCycleAction(action, targetIndex = null) {
               <div class="mt-1 text-[15px] sm:text-xs font-medium truncate w-full">
                 {{ step }}
               </div>
-            </button>
+            </div>
           </div>
         </div>
 
@@ -228,44 +225,12 @@ async function handleCycleAction(action, targetIndex = null) {
       </p>
     </div>
 
-    <!-- Bottom controls (hidden when custom view is active for COLLECTION_TABLE / ACTIVITY_LOG to avoid duplicate footers) -->
+    <!-- Bottom controls (only for COLLECTION_TABLE / ACTIVITY_LOG in standard view; CYCLE_STATE_MACHINE default view stays purely informative) -->
     <div
-      v-if="tracker.type === 'CYCLE_STATE_MACHINE' || !isRenderingCustomView"
+      v-if="tracker.type !== 'CYCLE_STATE_MACHINE' && !isRenderingCustomView"
       class="flex items-center gap-2.5 pt-3.5 border-t hairline-border"
     >
-      <template v-if="tracker.type === 'CYCLE_STATE_MACHINE'">
-        <button
-          type="button"
-          :disabled="busy"
-          class="btn-primary h-12 sm:h-9 flex-1 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40"
-          @click="handleCycleAction('advance')"
-        >
-          <span>{{ busy ? 'Mise à jour…' : 'Avancer' }}</span>
-          <AppIcon name="arrow-right" />
-        </button>
-        <button
-          type="button"
-          :disabled="busy"
-          class="btn-secondary h-12 sm:h-9 rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-center gap-2 disabled:opacity-40"
-          title="Maintenir cette étape et verrouiller jusqu'au prochain briefing"
-          @click="handleCycleAction('skip')"
-        >
-          <AppIcon name="pause" />
-          <span>Maintenir</span>
-        </button>
-        <button
-          type="button"
-          :disabled="busy"
-          class="btn-secondary h-12 sm:h-9 min-w-[48px] sm:min-w-[36px] rounded-[10px] sm:rounded-[8px] px-3 text-[15px] sm:text-xs font-mono meta-mono text-ink-secondary disabled:opacity-40"
-          title="Inspecter l'historique"
-          @click="emit('open', tracker.id)"
-        >
-          {{ tracker.record_count ?? 0 }}
-        </button>
-      </template>
-
       <button
-        v-else-if="!isRenderingCustomView"
         type="button"
         class="btn-secondary h-12 sm:h-9 w-full rounded-[10px] sm:rounded-[8px] px-4 text-[15px] sm:text-xs font-medium inline-flex items-center justify-between"
         @click="emit('open', tracker.id)"

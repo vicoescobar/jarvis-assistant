@@ -16,7 +16,7 @@ Les outils de productivité classiques imposent des schémas rigides (bases de d
 
 **Jarvis Assistant** résout ce compromis grâce à une architecture **100 % générique et pilotée par schémas dynamiques** :
 - **Zéro schéma codé en dur :** L'utilisateur crée, modifie et interroge ses propres outils de suivi (cycles récurrents, tables de suivi/CRM, journaux d'activité) et ses règles métier **directement à la voix ou par message**, sans jamais modifier le code source ni redéployer l'application.
-- **Interaction en moins de 2 minutes :** Agrégation proactive multi-sources (Google Calendar, Gmail, Google Tasks, Drive/Docs/Sheets), briefings matinaux automatisés sur Discord, et cockpit Web/PWA mobile avec mode vocal temps réel (*barge-in*).
+- **Interaction en moins de 2 minutes :** Agrégation proactive multi-sources (Google Calendar, Gmail, Google Tasks, Drive/Docs/Sheets), briefings matinaux automatisés sur Discord, et cockpit Web/PWA mobile avec mode vocal épuré (dictée & synthèse TTS).
 - **Confidentialité & Reproductibilité Open-Source :** Le moteur public est intégralement découplé des données d'exécution privées (`user_data/`), permettant à n'importe quel développeur d'auto-héberger sa propre instance sur un simple VPS Linux.
 
 👉 **[Consulter l'étude d'architecture complète (`docs/ARCHITECTURE_DEEP_DIVE.md`)](docs/ARCHITECTURE_DEEP_DIVE.md)**
@@ -26,7 +26,7 @@ Les outils de productivité classiques imposent des schémas rigides (bases de d
 ## 2. Points forts d'ingénierie (Architecture Highlights)
 
 ### A. Moteur de Trackers Dynamiques Sans Schéma Figé (*Schema-less Meta-Tools*)
-Plutôt que de créer une table SQL par cas d'usage, l'agent IA dispose de **4 méta-outils universels** (`create_or_update_tracker_schema`, `mutate_tracker_record`, `query_tracker_records`, `update_memory_rule`) opérant sur un volume JSON isolé (`user_data/`) :
+Plutôt que de créer une table SQL par cas d'usage, l'agent IA dispose de **5 méta-outils universels** (`create_or_update_tracker_schema`, `mutate_tracker_record`, `query_tracker_records`, `update_memory_rule`, `update_tracker_custom_view`) opérant sur un volume JSON isolé (`user_data/`) :
 - **`CYCLE_STATE_MACHINE`** : Machines à états cycliques (ex. rotation d'entraînement sportif, programme de révision) avec avancement idempotent et report sans perte d'état (*skip* générant une règle volatile d'expiration automatique).
 - **`COLLECTION_TABLE`** : Tables structurées à typage dynamique (ex. CRM freelance, suivi de candidatures, devis) avec filtrage et préservation des entrées actives lors des archivages.
 - **`ACTIVITY_LOG`** : Journaux horodatés (ex. sessions de veille, heures de pratique, lectures) compressés mensuellement par LLM au-delà de 30 jours (`archive_<id>.json`).
@@ -79,7 +79,7 @@ flowchart TB
         DBRIDGE["🤖 jarvis-discord-bridge (#chatbot Text + Audio)"]:::vps
         USERDATA["🗄️ Volume user_data (Trackers, Memory, Chat History & Archives 30j)"]:::vps
         SQLITE["🔐 Volume backend_data (SQLite Sanctum Auth)"]:::vps
-        GEMINI["🧠 API Google Gemini (Flash & Live WebSocket)"]:::vps
+        GEMINI["🧠 API Google Gemini Flash"]:::vps
     end
 
     VOICE -->|"POST /webhook/voice-command"| N8N
@@ -106,29 +106,30 @@ flowchart TB
 
 | Couche | Technologies | Rôle |
 | :--- | :--- | :--- |
-| **Orchestration IA** | `n8n` (Docker), `JavaScript (Node.js)` | Exécution des 4 workflows événementiels, connecteurs OAuth2 Google Workspace et méta-outils JSON |
-| **Modèles LLM & Voix** | `Gemini Flash`, `Gemini 2.5 Flash Native Audio (Live API)` | Function calling structuré, synthèse matinale, compression mémoire 30j et streaming vocal WebSocket |
-| **API Gateway** | `PHP 8.3-FPM (ondemand)`, `Laravel 11`, `Sanctum`, `SQLite`, `PHPUnit` | Authentification Bearer, CRUD atomique `LOCK_EX` sur `user_data/`, proxy n8n et sessions éphémères Gemini Live |
-| **Cockpit & PWA** | `Vue.js 3 (<script setup>)`, `Vite 6`, `Tailwind CSS`, `WebAudio API` | Interface responsive pilotée par schémas, télémétrie LLMOps, client WebSocket PCM 16/24 kHz et Service Worker PWA |
+| **Orchestration IA** | `n8n` (Docker), `JavaScript (Node.js)` | Exécution des 4 workflows événementiels, connecteurs OAuth2 Google Workspace et 5 méta-outils JSON |
+| **Modèle LLM & Audio** | `Google Gemini Flash` | Function calling structuré, synthèse matinale, transcription de notes vocales et compression mémoire 30j |
+| **API Gateway** | `PHP 8.3-FPM (ondemand)`, `Laravel 11`, `Sanctum`, `SQLite`, `PHPUnit` | Authentification Bearer, CRUD atomique `LOCK_EX` sur `user_data/`, sanitizer de vues et proxy interne n8n |
+| **Cockpit & PWA** | `Vue.js 3 (<script setup>)`, `Vite 6`, `Tailwind CSS`, `Sandboxed Iframe SDK` | Interface responsive pilotée par schémas, micro-apps JS sandboxées (`window.jarvis`), thème Pastel/Graphite et PWA |
 | **Passerelle Discord** | `Node.js 20 Alpine`, `discord.js v14` | Écoute temps réel du salon `#chatbot` (texte + notes vocales `.ogg`/`.mp3`/`.m4a`) vers n8n |
 | **Infra & CI/CD** | `Docker Compose`, `Nginx Alpine`, `CloudPanel SSL`, `GitHub Actions` | Conteneurisation isolée (`1000:1000`), reverse proxy local `127.0.0.1` et déploiement SSH automatisé |
 
 ```text
 ├── .agents/
 │   ├── hooks/pre-commit-secrets.sh          # Hook déterministe anti-secrets & validation syntaxique JSON
+│   ├── local-context.example.md             # Modèle sanitisé de contexte d'infrastructure locale
 │   └── skills/                              # Spécifications d'architecture & garde-fous UX (Dual-Loop Workflow)
 ├── .github/workflows/deploy.yml             # Pipeline CI/CD SSH (build Docker, migrations Laravel, import n8n)
 ├── backend/                                 # API Gateway Laravel 11 (Controllers, Services, Sanctum, Tests PHPUnit)
 ├── docs/
 │   ├── achitecture.mmd                      # Source Mermaid du schéma d'architecture
 │   └── ARCHITECTURE_DEEP_DIVE.md            # Documentation technique exhaustive & étude de cas portfolio
-├── frontend/                                # Cockpit Vue.js 3 + Tailwind CSS + PWA Mobile & WebAudio Live
+├── frontend/                                # Cockpit Vue.js 3 + Tailwind CSS + Micro-Apps Sandboxées & PWA Mobile
 ├── infra/
 │   ├── docker-compose.yml                   # Définition des 4 conteneurs de production (n8n, bridge, backend, dashboard)
 │   └── .env.exemple                         # Modèle de variables d'environnement sanitisé
 ├── scripts/discord-bridge/                  # Micro-service Node.js discord.js v14 (Texte & Audio -> n8n)
 └── workflows/                               # Workflows n8n versionnés et sanitisés
-    ├── 01-voice-agent-core.json             # Agent principal (4 Méta-Outils + 17 outils Google Workspace)
+    ├── 01-voice-agent-core.json             # Agent principal (5 Méta-Outils + 17 outils Google Workspace)
     ├── 02-morning-briefing.json             # Briefing matinal 08:30 (Agenda, Mails 24h, Tasks, Mutations Trackers)
     ├── 03-memory-compression.json           # Compression mensuelle des journaux > 30j & purge des règles expirées
     └── 04-discord-chatbot.json              # Chatbot persistant multi-tours (Texte + Transcription Audio)
@@ -171,7 +172,7 @@ docker exec -u node jarvis-n8n n8n update:workflow --all --active=true
 
 ### Vérification des tests & de la sécurité avant commit
 ```bash
-# Exécuter la suite de tests Feature PHPUnit (API Gateway, Trackers, Mémoire, Gemini Live)
+# Exécuter la suite de tests Feature PHPUnit (API Gateway, Trackers, Vues personnalisées, Mémoire)
 cd backend && php artisan test
 
 # Vérifier l'absence de secrets et la validité JSON des workflows n8n
@@ -182,6 +183,6 @@ cd backend && php artisan test
 
 ## 6. Documentation Technique Approfondie
 
-Pour explorer en détail les contrats de données JSON (`user_data/`), le fonctionnement interne des 4 méta-outils, le pipeline audio PCM 16/24 kHz de Gemini Live, la gestion de la concurrence `LOCK_EX` et la fiche synthèse d'ingénierie :
+Pour explorer en détail les contrats de données JSON (`user_data/`), le fonctionnement interne des 5 méta-outils, le moteur de micro-apps HTML/CSS/JS sandboxées (`window.jarvis`), la gestion de la concurrence `LOCK_EX` et la fiche synthèse d'ingénierie :
 
 📖 **[Lire `docs/ARCHITECTURE_DEEP_DIVE.md` — Architecture Deep Dive & Portfolio Case Study](docs/ARCHITECTURE_DEEP_DIVE.md)**

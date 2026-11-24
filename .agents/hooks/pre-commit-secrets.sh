@@ -9,17 +9,35 @@ echo "🔍 [Jarvis Security Hook] Scanning repository for leaked secrets and val
 
 ERRORS=0
 
-# 1. Verify that private runtime directories are not tracked by Git
-if git ls-files --error-unmatch infra/n8n_data infra/user_data infra/backend_data .env infra/.env backend/.env >/dev/null 2>&1; then
-  echo "❌ ERROR: Private runtime data or .env file is tracked by Git!"
+# 1. Verify that private runtime directories and local agent context files are not tracked or staged by Git
+FORBIDDEN_PATHS=(
+  "infra/n8n_data"
+  "infra/user_data"
+  "infra/backend_data"
+  ".env"
+  "infra/.env"
+  "backend/.env"
+  ".agents/local-context.md"
+)
+
+for fpath in "${FORBIDDEN_PATHS[@]}"; do
+  if git ls-files --error-unmatch "$fpath" >/dev/null 2>&1; then
+    echo "❌ ERROR: Private file or directory '$fpath' is tracked by Git!"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
+if git ls-files | grep -E '(^|/)\.agents/local-context\.md$|(^|/).*\.local\.md$' >/dev/null 2>&1; then
+  echo "❌ ERROR: A private local context file (.agents/local-context.md or *.local.md) is tracked or staged in Git!"
   ERRORS=$((ERRORS + 1))
 fi
 
-# 2. Scan workflows/, infra/, and backend/app for hardcoded secrets (Google API keys, Discord webhooks/tokens, hardcoded emails)
+# 2. Scan workflows/, infra/, backend/, frontend/, AGENTS.md, and tracked .agents/ files for hardcoded secrets or private infra identifiers
 SECRET_PATTERNS=(
   'AIza[0-9A-Za-z_-]{35}'
   'https://discord(app)?\.com/api/webhooks/[0-9]+/[0-9A-Za-z_-]+'
   'victorgiroud4@gmail\.com'
+  '57\.129\.174\.162'
   'ya29\.[0-9A-Za-z_-]+'
 )
 
@@ -31,11 +49,15 @@ SCAN_TARGETS=()
 [ -d "backend/routes" ] && SCAN_TARGETS+=("backend/routes")
 [ -d "frontend/src" ] && SCAN_TARGETS+=("frontend/src")
 [ -d "frontend/public" ] && SCAN_TARGETS+=("frontend/public")
+[ -f "AGENTS.md" ] && SCAN_TARGETS+=("AGENTS.md")
+[ -f ".agents/rules.md" ] && SCAN_TARGETS+=(".agents/rules.md")
+[ -f ".agents/local-context.example.md" ] && SCAN_TARGETS+=(".agents/local-context.example.md")
+[ -d ".agents/skills" ] && SCAN_TARGETS+=(".agents/skills")
 
 if [ ${#SCAN_TARGETS[@]} -gt 0 ]; then
   for pattern in "${SECRET_PATTERNS[@]}"; do
     if grep -RInE "$pattern" "${SCAN_TARGETS[@]}" 2>/dev/null; then
-      echo "❌ ERROR: Potential hardcoded secret or personal identifier matching '$pattern' found in ${SCAN_TARGETS[*]}!"
+      echo "❌ ERROR: Potential hardcoded secret or private identifier matching '$pattern' found in ${SCAN_TARGETS[*]}!"
       ERRORS=$((ERRORS + 1))
     fi
   done
@@ -70,4 +92,3 @@ fi
 
 echo "✅ [Jarvis Security Hook] All checks passed (0 leaked secrets, valid workflow JSONs)."
 exit 0
-

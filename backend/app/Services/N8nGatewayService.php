@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
 class N8nGatewayService
@@ -11,9 +12,28 @@ class N8nGatewayService
         return rtrim((string) config('jarvis.n8n_internal_url', 'http://jarvis-n8n:5678'), '/');
     }
 
+    public function getWebhookSecret(): string
+    {
+        return trim((string) (config('services.n8n.webhook_secret') ?? config('jarvis.n8n_webhook_secret') ?? ''));
+    }
+
     public function getUserDataPath(): string
     {
         return rtrim((string) config('jarvis.user_data_path'), '/');
+    }
+
+    private function httpClient(): PendingRequest
+    {
+        $client = Http::timeout(45);
+        $secret = $this->getWebhookSecret();
+
+        if ($secret !== '') {
+            $client = $client->withHeaders([
+                'X-Jarvis-Webhook-Token' => $secret,
+            ]);
+        }
+
+        return $client;
     }
 
     /**
@@ -23,7 +43,7 @@ class N8nGatewayService
      */
     public function sendCommand(string $command, bool $notifyDiscord = false): array
     {
-        $response = Http::timeout(45)->post($this->getBaseUrl().'/webhook/voice-command', [
+        $response = $this->httpClient()->post($this->getBaseUrl().'/webhook/voice-command', [
             'command' => $command,
             'notify_discord' => $notifyDiscord,
         ]);
@@ -62,7 +82,7 @@ class N8nGatewayService
      */
     public function sendChatMessage(string $text): array
     {
-        $response = Http::timeout(45)->post($this->getBaseUrl().'/webhook/discord-chat', [
+        $response = $this->httpClient()->post($this->getBaseUrl().'/webhook/discord-chat', [
             'text' => $text,
             'channel_id' => 'web-dashboard',
             'author' => 'owner',
@@ -87,7 +107,7 @@ class N8nGatewayService
      */
     public function triggerMorningBriefing(): array
     {
-        $response = Http::timeout(45)->post($this->getBaseUrl().'/webhook/morning-briefing');
+        $response = $this->httpClient()->post($this->getBaseUrl().'/webhook/morning-briefing');
 
         $response->throw();
 

@@ -26,6 +26,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "compress-memory",
+        "authentication": "headerAuth",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -37,7 +38,13 @@
         220,
         440
       ],
-      "webhookId": "jarvis-compress-memory-webhook"
+      "webhookId": "jarvis-compress-memory-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JARVIS_WEBHOOK_AUTH_CREDENTIAL_ID",
+          "name": "Jarvis Webhook Auth"
+        }
+      }
     },
     {
       "parameters": {

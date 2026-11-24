@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'n8n' => [
+        'webhook_secret' => env('JARVIS_WEBHOOK_SECRET'),
+    ],
+
 ];

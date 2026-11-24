@@ -6,6 +6,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "voice-command",
+        "authentication": "headerAuth",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -17,7 +18,13 @@
         240,
         340
       ],
-      "webhookId": "jarvis-voice-command-webhook"
+      "webhookId": "jarvis-voice-command-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JARVIS_WEBHOOK_AUTH_CREDENTIAL_ID",
+          "name": "Jarvis Webhook Auth"
+        }
+      }
     },
     {
       "parameters": {

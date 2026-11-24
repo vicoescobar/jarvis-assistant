@@ -10,6 +10,13 @@ const DISCORD_CHATBOT_CHANNEL_ID = (process.env.DISCORD_CHATBOT_CHANNEL_ID || ''
 const N8N_CHATBOT_WEBHOOK_URL = (
   process.env.N8N_CHATBOT_WEBHOOK_URL || 'http://jarvis-n8n:5678/webhook/discord-chat'
 ).trim();
+const JARVIS_WEBHOOK_SECRET = (process.env.JARVIS_WEBHOOK_SECRET || '').trim();
+
+if (!JARVIS_WEBHOOK_SECRET) {
+  console.warn(
+    '[Jarvis Discord Bridge] WARNING: JARVIS_WEBHOOK_SECRET is missing or empty! Authenticated n8n webhooks will reject requests with 403/401.'
+  );
+}
 
 const AUDIO_EXTENSIONS = ['.ogg', '.mp3', '.wav', '.m4a', '.webm'];
 const MAX_CHUNK_LENGTH = 1900;
@@ -33,16 +40,21 @@ function postToN8nWebhook(targetUrl, payloadObj) {
     const transport = parsed.protocol === 'https:' ? https : http;
     const bodyStr = JSON.stringify(payloadObj);
 
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(bodyStr)
+    };
+    if (JARVIS_WEBHOOK_SECRET) {
+      headers['X-Jarvis-Webhook-Token'] = JARVIS_WEBHOOK_SECRET;
+    }
+
     const req = transport.request(
       {
         hostname: parsed.hostname,
         port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
         path: parsed.pathname + parsed.search,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(bodyStr)
-        },
+        headers,
         timeout: 120000
       },
       (res) => {

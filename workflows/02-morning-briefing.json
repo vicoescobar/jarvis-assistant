@@ -26,6 +26,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "morning-briefing",
+        "authentication": "headerAuth",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -37,7 +38,13 @@
         200,
         440
       ],
-      "webhookId": "jarvis-morning-briefing-webhook"
+      "webhookId": "jarvis-morning-briefing-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JARVIS_WEBHOOK_AUTH_CREDENTIAL_ID",
+          "name": "Jarvis Webhook Auth"
+        }
+      }
     },
     {
       "parameters": {

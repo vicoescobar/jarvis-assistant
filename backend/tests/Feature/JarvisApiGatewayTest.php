@@ -26,6 +26,8 @@ class JarvisApiGatewayTest extends TestCase
         config([
             'jarvis.user_data_path' => $this->tempUserDataDir,
             'jarvis.n8n_internal_url' => 'http://jarvis-n8n:5678',
+            'jarvis.n8n_webhook_secret' => 'test-webhook-secret-token',
+            'services.n8n.webhook_secret' => 'test-webhook-secret-token',
             'jarvis.owner_email' => 'owner@example.com',
             'jarvis.owner_password' => 'SuperSecretPassword123!',
         ]);
@@ -328,6 +330,7 @@ class JarvisApiGatewayTest extends TestCase
             ->assertJsonPath('status', 'executed');
 
         Http::assertSent(fn ($request) => $request->url() === 'http://jarvis-n8n:5678/webhook/voice-command'
+            && $request->hasHeader('X-Jarvis-Webhook-Token', 'test-webhook-secret-token')
             && $request['command'] === 'Ajoute une tâche appeler le maître de stage'
             && $request['notify_discord'] === false);
 
@@ -338,6 +341,7 @@ class JarvisApiGatewayTest extends TestCase
             ->assertJsonPath('reply', 'Cycle sport mis à jour.');
 
         Http::assertSent(fn ($request) => $request->url() === 'http://jarvis-n8n:5678/webhook/discord-chat'
+            && $request->hasHeader('X-Jarvis-Webhook-Token', 'test-webhook-secret-token')
             && $request['channel_id'] === 'web-dashboard'
             && $request['author'] === 'owner');
 
@@ -345,6 +349,9 @@ class JarvisApiGatewayTest extends TestCase
         $this->postJson('/api/jarvis/briefing/trigger')
             ->assertOk()
             ->assertJsonPath('status', 'dispatched');
+
+        Http::assertSent(fn ($request) => $request->url() === 'http://jarvis-n8n:5678/webhook/morning-briefing'
+            && $request->hasHeader('X-Jarvis-Webhook-Token', 'test-webhook-secret-token'));
     }
 
     public function test_tracker_custom_view_patch_sanitization_and_delete_reset(): void

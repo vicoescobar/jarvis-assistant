@@ -6,6 +6,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "discord-chat",
+        "authentication": "headerAuth",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -17,7 +18,13 @@
         200,
         340
       ],
-      "webhookId": "jarvis-discord-chat-webhook"
+      "webhookId": "jarvis-discord-chat-webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JARVIS_WEBHOOK_AUTH_CREDENTIAL_ID",
+          "name": "Jarvis Webhook Auth"
+        }
+      }
     },
     {
       "parameters": {
@@ -185,7 +192,7 @@
       "parameters": {
         "name": "execute_jarvis_action",
         "description": "Délègue l'exécution d'une action opérationnelle (Trackers dynamiques, création/modification/réinitialisation de vue personnalisée HTML/CSS update_tracker_custom_view, Règles mémoire, Google Tasks, Google Calendar, Gmail, Google Drive, Google Docs, Google Sheets) au workflow principal 01-voice-agent-core. Passe un JSON stringifié contenant: command (string décrivant précisément l'action demandée par l'utilisateur).",
-        "jsCode": "const http = require('http');\n\nlet payload;\ntry {\n  payload = typeof query === 'string' ? JSON.parse(query) : query;\n} catch (e) {\n  payload = { command: String(query || '') };\n}\n\nconst commandText = String(payload.command || payload.query || query || '').trim();\nif (!commandText) {\n  return JSON.stringify({ error: 'command is required' });\n}\n\nconst requestBody = JSON.stringify({\n  command: commandText,\n  notify_discord: false\n});\n\nfunction callVoiceWebhook(hostname) {\n  return new Promise((resolve, reject) => {\n    const req = http.request(\n      {\n        hostname,\n        port: 5678,\n        path: '/webhook/voice-command',\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'Content-Length': Buffer.byteLength(requestBody)\n        },\n        timeout: 90000\n      },\n      (res) => {\n        let raw = '';\n        res.on('data', (chunk) => { raw += chunk; });\n        res.on('end', () => {\n          if (res.statusCode >= 200 && res.statusCode < 300) {\n            resolve(raw);\n          } else {\n            reject(new Error(`Voice webhook HTTP ${res.statusCode}: ${raw}`));\n          }\n        });\n      }\n    );\n    req.on('timeout', () => req.destroy(new Error('Voice webhook timeout')));\n    req.on('error', reject);\n    req.write(requestBody);\n    req.end();\n  });\n}\n\ntry {\n  const resStr = await callVoiceWebhook('127.0.0.1');\n  return resStr;\n} catch (err1) {\n  try {\n    const resStr2 = await callVoiceWebhook('jarvis-n8n');\n    return resStr2;\n  } catch (err2) {\n    return JSON.stringify({ error: 'Failed to call 01-voice-agent-core', details: err2.message });\n  }\n}"
+        "jsCode": "const http = require('http');\n\nlet payload;\ntry {\n  payload = typeof query === 'string' ? JSON.parse(query) : query;\n} catch (e) {\n  payload = { command: String(query || '') };\n}\n\nconst commandText = String(payload.command || payload.query || query || '').trim();\nif (!commandText) {\n  return JSON.stringify({ error: 'command is required' });\n}\n\nconst requestBody = JSON.stringify({\n  command: commandText,\n  notify_discord: false\n});\n\nconst webhookSecret = typeof $env !== 'undefined' && $env.JARVIS_WEBHOOK_SECRET ? String($env.JARVIS_WEBHOOK_SECRET).trim() : '';\n\nfunction callVoiceWebhook(hostname) {\n  return new Promise((resolve, reject) => {\n    const headers = {\n      'Content-Type': 'application/json',\n      'Content-Length': Buffer.byteLength(requestBody)\n    };\n    if (webhookSecret) {\n      headers['X-Jarvis-Webhook-Token'] = webhookSecret;\n    }\n    const req = http.request(\n      {\n        hostname,\n        port: 5678,\n        path: '/webhook/voice-command',\n        method: 'POST',\n        headers,\n        timeout: 90000\n      },\n      (res) => {\n        let raw = '';\n        res.on('data', (chunk) => { raw += chunk; });\n        res.on('end', () => {\n          if (res.statusCode >= 200 && res.statusCode < 300) {\n            resolve(raw);\n          } else {\n            reject(new Error(`Voice webhook HTTP ${res.statusCode}: ${raw}`));\n          }\n        });\n      }\n    );\n    req.on('timeout', () => req.destroy(new Error('Voice webhook timeout')));\n    req.on('error', reject);\n    req.write(requestBody);\n    req.end();\n  });\n}\n\ntry {\n  const resStr = await callVoiceWebhook('127.0.0.1');\n  return resStr;\n} catch (err1) {\n  try {\n    const resStr2 = await callVoiceWebhook('jarvis-n8n');\n    return resStr2;\n  } catch (err2) {\n    return JSON.stringify({ error: 'Failed to call 01-voice-agent-core', details: err2.message });\n  }\n}"
       },
       "id": "b4a00004-0009-4000-8000-000000000009",
       "name": "execute_jarvis_action",

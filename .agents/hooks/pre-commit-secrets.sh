@@ -61,6 +61,12 @@ if [ ${#SCAN_TARGETS[@]} -gt 0 ]; then
       ERRORS=$((ERRORS + 1))
     fi
   done
+
+  # Block hardcoded JARVIS_WEBHOOK_SECRET values while allowing the template placeholder and ${JARVIS_WEBHOOK_SECRET:-}
+  if grep -RInE 'JARVIS_WEBHOOK_SECRET=[A-Za-z0-9_-]{24,}' "${SCAN_TARGETS[@]}" 2>/dev/null | grep -v 'JARVIS_WEBHOOK_SECRET=generate_with_openssl_rand_hex_32'; then
+    echo "❌ ERROR: Hardcoded JARVIS_WEBHOOK_SECRET value found in ${SCAN_TARGETS[*]}!"
+    ERRORS=$((ERRORS + 1))
+  fi
 fi
 
 # 3. Validate JSON syntax for all workflows/*.json files
